@@ -19,7 +19,7 @@ set(ZEBU_VERSION_PATCH ${CMAKE_MATCH_3})
 # Executable name (Linux binary, Windows exe) and the GitHub repository used by the updater.
 set(ZEBU_APP_CMD "zebu-slicer")
 if (NOT DEFINED ZEBU_UPDATE_REPO)
-    set(ZEBU_UPDATE_REPO "CHANGE_ME/ZEBU-Slicer" CACHE STRING "owner/repo whose GitHub Releases the updater checks")
+    set(ZEBU_UPDATE_REPO "Luigi084/ZEBU-Slicer" CACHE STRING "owner/repo whose GitHub Releases the updater checks")
 endif()
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)"
        SoftFever_VERSION_MATCH ${SoftFever_VERSION})
