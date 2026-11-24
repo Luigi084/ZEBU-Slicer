@@ -1,0 +1,1 @@
+{"from":"User","inherits":"Voron 2.4 350 0.4 nozzle","is_custom_defined":"0","name":"G3D Pro 360","printer_settings_id":"G3D Pro 360","printable_area":["0x0","360x0","360x360","0x360"],"printable_height":"450","version":"2.5.0.0","machine_start_gcode":"PRINT_START"}

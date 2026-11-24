@@ -10001,6 +10001,16 @@ bool GUI_App::run_wizard(RunReason reason, StartPage start_page)
 {
     wxCHECK_MSG(mainframe != nullptr, false, "Internal error: Main frame not created / null");
 
+    // ZEBU: there are no vendor profiles to pick from. "Add printer / filament" opens the matching
+    // creation dialog instead of the vendor wizard.
+    if (Preset::zebu_hide_system_presets && plater() != nullptr) {
+        if (start_page == StartPage::SP_FILAMENTS || start_page == StartPage::SP_MATERIALS)
+            wxQueueEvent(plater(), new SimpleEvent(EVT_CREATE_FILAMENT));
+        else
+            plater()->sidebar().create_printer_preset();
+        return true;
+    }
+
 #ifdef __APPLE__
      if (is_adding_script_handler()) {
         BOOST_LOG_TRIVIAL(info) << "run_wizard: Script handler is being added, delaying wizard creation";
