@@ -137,6 +137,10 @@ void AppConfig::set_defaults()
         // ZEBU: the bundled Orca/Bambu cloud features are off; only the ZEBU updater talks to the network.
         if (get("zebu_check_updates").empty())
             set_bool("zebu_check_updates", true);
+        if (get("zebu_update_prerelease").empty())
+            set_bool("zebu_update_prerelease", true);
+        if (get("zebu_live_enabled").empty())
+            set_bool("zebu_live_enabled", true);
 #ifdef SUPPORT_AUTO_CENTER
         // Reset the empty fields to defaults.
         if (get("autocenter").empty())

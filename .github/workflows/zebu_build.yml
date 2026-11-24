@@ -1,0 +1,109 @@
+# ZEBU Slicer - builds the Windows installer and the Linux AppImage.
+#  - manual run (Actions > ZEBU build > Run workflow): artifacts only
+#  - tag "vX.Y.Z[-beta...]" pushed: artifacts + a GitHub release (pre-release when the tag has a "-")
+#    that the built-in updater reads.
+name: ZEBU build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: zebu-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: deps/build
+          key: zebu-deps-win-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis -y --no-progress
+
+      - name: Build dependencies
+        shell: cmd
+        run: build_win.bat -d
+
+      - name: Build ZEBU Slicer
+        shell: cmd
+        run: build_win.bat -s --build-dir build
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $env:Path = "${env:ProgramFiles(x86)}\NSIS;$env:Path"
+          .\packaging\windows\build_installer.ps1 -BuildDir build -Config Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZEBU_Slicer_Windows
+          path: |
+            build/ZEBU_Slicer_Windows_Installer_*.exe
+            build/ZEBU_Slicer_Windows_Installer_*.exe.sha256
+
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: deps/build
+          key: zebu-deps-linux-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
+
+      - name: System packages
+        run: ./build_linux.sh -u
+
+      - name: Build dependencies, ZEBU Slicer and the AppImage
+        run: ./build_linux.sh -dsir
+
+      - name: Checksum
+        run: |
+          cd build
+          for f in ZEBU_Slicer_Linux_V*.AppImage; do sha256sum "$f" > "$f.sha256"; done
+          ls -la ZEBU_Slicer_Linux_V*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ZEBU_Slicer_Linux
+          path: |
+            build/ZEBU_Slicer_Linux_V*.AppImage
+            build/ZEBU_Slicer_Linux_V*.AppImage.sha256
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "ZEBU Slicer ${TAG#v}" \
+            --notes "ZEBU Slicer ${TAG#v}" $prerelease

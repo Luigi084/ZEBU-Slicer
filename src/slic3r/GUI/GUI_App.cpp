@@ -7,6 +7,7 @@
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
 #include "ZebuImportDialog.hpp"
+#include "ZebuUpdater.hpp"
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
@@ -2982,6 +2983,8 @@ int GUI_App::OnExit()
         BOOST_LOG_TRIVIAL(error) << "Failed to clean up encrypt bbl network log file";
     }
 
+    // ZEBU: start the downloaded installer / restart the updated AppImage now that the app is closing.
+    zebu_run_pending_update();
     return wxApp::OnExit();
 }
 
@@ -3365,6 +3368,23 @@ bool GUI_App::on_init_inner()
     // !!! Initialization of UI settings as a language, application color mode, fonts... have to be done before first UI action.
     // Like here, before the show InfoDialog in check_older_app_config()
 
+#ifdef _WIN32
+    // ZEBU: the installer records the language chosen during setup (HKCU\Software\ZEBU Slicer).
+    // It is applied once per installation, so a later change in Preferences is kept until the next setup.
+    {
+        wxRegKey key(wxRegKey::HKCU, "Software\\ZEBU Slicer");
+        wxString lang, stamp;
+        if (key.Exists() && key.HasValue("Language") && key.QueryValue("Language", lang) && !lang.empty()) {
+            if (key.HasValue("InstallStamp"))
+                key.QueryValue("InstallStamp", stamp);
+            const std::string stamp_u8 = stamp.ToUTF8().data();
+            if (stamp_u8 != app_config->get("zebu_installer_stamp")) {
+                app_config->set("language", lang.ToUTF8().data());
+                app_config->set("zebu_installer_stamp", stamp_u8);
+            }
+        }
+    }
+#endif
     // If load_language() fails, the application closes.
     load_language(wxString(), true);
 #ifdef _MSW_DARK_MODE
@@ -6612,6 +6632,9 @@ void maybe_attach_updater_signature(Http& http, const std::string& canonical_que
 
 void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 {
+    // ZEBU: updates come from ZEBU's own GitHub releases, not from OrcaSlicer's update service.
+    zebu_check_for_update(show_tips || by_user != 0);
+    return;
     AppConfig* app_config = wxGetApp().app_config;
     bool       check_stable_only = app_config->get_bool("check_stable_update_only");
     auto version_check_url = app_config->version_check_url();

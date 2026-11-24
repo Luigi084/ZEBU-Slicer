@@ -1813,6 +1813,22 @@ void PreferencesDialog::create_items()
     auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
     g_sizer->Add(item_shared_profiles);
 
+    //// GENERAL > ZEBU
+    g_sizer->Add(create_item_title("ZEBU Slicer"), 1, wxEXPAND);
+    g_sizer->Add(create_item_checkbox(_L("Filaments and processes belong to one printer"),
+        _L("A filament or process preset is only listed for the printers it is bound to. Saving a preset under a new name binds it to the current printer. Takes effect after a restart."),
+        "zebu_strict_presets"));
+    g_sizer->Add(create_item_checkbox(_L("Hide vendor (system) presets"),
+        _L("Vendor presets stay available as templates but are not listed with your presets. Takes effect after a restart."),
+        "zebu_hide_system_presets"));
+    g_sizer->Add(create_item_checkbox(_L("Show the ZEBU Live panel"),
+        _L("Camera, temperatures and progress of the selected printer (Moonraker) in the Prepare sidebar. Takes effect after a restart."),
+        "zebu_live_enabled"));
+    g_sizer->Add(create_item_checkbox(_L("Check for ZEBU Slicer updates at startup"), _L("Looks for a newer release on the ZEBU Slicer GitHub page."),
+        "zebu_check_updates"));
+    g_sizer->Add(create_item_checkbox(_L("Include beta versions in updates"), _L("Offer pre-release (beta) versions as updates."),
+        "zebu_update_prerelease"));
+
     //// GENERAL > Features
     g_sizer->Add(create_item_title(_L("Features")), 1, wxEXPAND);
 

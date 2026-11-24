@@ -3259,7 +3259,7 @@ Sidebar::Sidebar(Plater *parent)
         scrolled_sizer->Add(p->m_panel_printer_content, 0, wxEXPAND, 0);
 
         // ZEBU: live camera / temperatures / progress of the selected printer, right under its selection.
-        if (wxGetApp().app_config->get("zebu_live_enabled") != "0")
+        if (wxGetApp().app_config->get_bool("zebu_live_enabled"))
             scrolled_sizer->Add(new ZebuLivePanel(p->scrolled), 0, wxEXPAND | wxTOP, FromDIP(2));
     }
 
