@@ -168,32 +168,47 @@ Section "ZEBU Slicer" SecMain
   SetShellVarContext all
   SetRegView 64
 
-  ; Update: ZEBU was asked to quit just before; wait until its executable is free (max ~30 s).
-  ${If} ${FileExists} "$INSTDIR\${APP_EXE}"
-    StrCpy $2 0
-    ${Do}
+  ; Update: ZEBU starts this installer while it is exiting. Wait until its executable and main DLL can be
+  ; opened for writing, i.e. the process is gone (a running .exe can be renamed but not opened for writing).
+  StrCpy $2 0
+  ${Do}
+    StrCpy $3 "1"
+    ${If} ${FileExists} "$INSTDIR\${APP_EXE}"
       ClearErrors
-      Delete "$INSTDIR\${APP_EXE}.old"
-      Rename "$INSTDIR\${APP_EXE}" "$INSTDIR\${APP_EXE}.old"
-      ${IfNot} ${Errors}
-        ${Break}
+      FileOpen $4 "$INSTDIR\${APP_EXE}" a
+      ${If} ${Errors}
+        StrCpy $3 "0"
+      ${Else}
+        FileClose $4
       ${EndIf}
-      IntOp $2 $2 + 1
-      ${If} $2 >= 60
-        MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "Close ZEBU Slicer, then click Retry." /SD IDCANCEL IDRETRY retry
-        Abort
-        retry:
-        StrCpy $2 0
+    ${EndIf}
+    ${If} ${FileExists} "$INSTDIR\OrcaSlicer.dll"
+      ClearErrors
+      FileOpen $4 "$INSTDIR\OrcaSlicer.dll" a
+      ${If} ${Errors}
+        StrCpy $3 "0"
+      ${Else}
+        FileClose $4
       ${EndIf}
-      Sleep 500
-    ${Loop}
-  ${EndIf}
+    ${EndIf}
+    ${If} $3 == "1"
+      ${Break}
+    ${EndIf}
+    IntOp $2 $2 + 1
+    ${If} $2 >= 60
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION "Close ZEBU Slicer, then click Retry." /SD IDCANCEL IDRETRY retry
+      Abort
+      retry:
+      StrCpy $2 0
+    ${EndIf}
+    Sleep 500
+  ${Loop}
 
   SetOutPath "$INSTDIR"
   ; Files of the previous version that are gone in this one must not linger (old DLLs, removed profiles).
   RMDir /r "$INSTDIR\resources"
+  SetOverwrite on
   File /r "${STAGE_DIR}\*.*"
-  Delete "$INSTDIR\${APP_EXE}.old"
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
