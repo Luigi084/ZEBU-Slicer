@@ -1,4 +1,5 @@
 #include "NetworkAgentFactory.hpp"
+#include "libslic3r/libslic3r_version.h"
 #include "CloudProvider.hpp"
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
@@ -190,6 +191,7 @@ void NetworkAgentFactory::register_all_agents()
                                             // for K-series boards with CFS support.
     register_agent<MoonrakerPrinterAgent>();
 
+#if !ZEBU_NO_CLOUD
     // Keep BBL as a built-in option. Python printer-agent plugins with the
     // same AgentInfo ID are listed separately under the plugin registry key.
     {
@@ -203,10 +205,17 @@ void NetworkAgentFactory::register_all_agents()
                                    return agent;
                                });
     }
+#endif // !ZEBU_NO_CLOUD
 }
 
 std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_dir, AppConfig* app_config)
 {
+#if ZEBU_NO_CLOUD
+    // ZEBU: no cloud agent. NetworkAgent only carries the local printer agent (Moonraker...), created on demand.
+    (void) log_dir;
+    (void) app_config;
+    return std::make_unique<NetworkAgent>(nullptr, nullptr);
+#else
     if (!app_config)
         return std::make_unique<NetworkAgent>(nullptr, nullptr);
 
@@ -239,6 +248,7 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     }
 
     return agent;
+#endif // ZEBU_NO_CLOUD
 }
 
 void NetworkAgentFactory::register_python_plugin(const std::string& plugin_key)

@@ -2164,6 +2164,9 @@ bool GUI_App::has_network_update_available() const
 
 void GUI_App::show_network_plugin_download_dialog(bool is_update)
 {
+#if ZEBU_NO_CLOUD
+    (void) is_update; // ZEBU: no Bambu network plug-in, nothing to download
+#else
     auto load_error = Slic3r::NetworkAgent::get_load_error();
 
     NetworkPluginDownloadDialog::Mode mode;
@@ -2216,6 +2219,7 @@ void GUI_App::show_network_plugin_download_dialog(bool is_update)
     default:
         break;
     }
+#endif // ZEBU_NO_CLOUD
 }
 
 void GUI_App::remove_old_networking_plugins()
@@ -4086,7 +4090,11 @@ bool GUI_App::on_init_network(bool try_backup)
         }
     }
 
+#if ZEBU_NO_CLOUD
+    const bool should_load_networking_plugin = false; // ZEBU: the Bambu network plug-in is never loaded
+#else
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
+#endif
 
     // Normalize an older full-version identity to the AA.BB.CC series before it drives loading.
     migrate_network_plugin_config();
@@ -8005,8 +8013,8 @@ void GUI_App::check_bundle_updates()
 
 bool GUI_App::unsubscribe_bundle(const std::string& id)
 {
-    auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-    return orca_agent->unsubscribe_bundle(id);
+    auto orca_agent = m_agent ? std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent()) : nullptr;
+    return orca_agent && orca_agent->unsubscribe_bundle(id);
 }
 
 void GUI_App::start_sync_user_preset(bool with_progress_dlg)

@@ -38217,3 +38217,6 @@ msgstr "Tout décocher"
 
 msgid "Printer for the ticked presets:"
 msgstr "Imprimante des presets cochés :"
+
+msgid "ZEBU Slicer uses no cloud service. Printers are reached directly on your network (Connection button of each printer)."
+msgstr "ZEBU Slicer n'utilise aucun service cloud. Les imprimantes sont jointes directement sur votre réseau (bouton Connexion de chaque imprimante)."

@@ -2225,6 +2225,15 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+#if ZEBU_NO_CLOUD
+    // ZEBU: no cloud services, no Bambu network plug-in, no automatic download of vendor presets.
+    {
+        auto *note = new wxStaticText(m_parent, wxID_ANY,
+            _L("ZEBU Slicer uses no cloud service. Printers are reached directly on your network (Connection button of each printer)."));
+        note->Wrap(FromDIP(520));
+        g_sizer->Add(note, 0, wxALL, FromDIP(10));
+    }
+#else
     //// ONLINE > Connection
     g_sizer->Add(create_item_title(_L("Connection")), 1, wxEXPAND);
 
@@ -2287,6 +2296,7 @@ void PreferencesDialog::create_items()
     auto item_plugin_version = create_item_network_plugin_version(_L("Network plug-in version"), _L("Select the network plug-in version to use"));
     g_sizer->Add(item_plugin_version);
 
+#endif // ZEBU_NO_CLOUD
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 

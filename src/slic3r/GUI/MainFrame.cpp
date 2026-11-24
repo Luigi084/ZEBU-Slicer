@@ -3654,6 +3654,7 @@ void MainFrame::init_menubar_as_editor()
         },
         "", nullptr, []() { return true; }, this);
 
+#if !ZEBU_NO_CLOUD
     append_menu_item(
         top_menu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
         [this](wxCommandEvent&) {
@@ -3671,6 +3672,7 @@ void MainFrame::init_menubar_as_editor()
         []() {
             return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
         }, this);
+#endif
 
     top_menu->AppendSeparator();
     append_menu_item(
@@ -3758,6 +3760,7 @@ void MainFrame::init_menubar_as_editor()
         },
         "", nullptr, []() { return true; }, this);
 
+#if !ZEBU_NO_CLOUD
     append_menu_item(
         fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
         [this](wxCommandEvent&) {
@@ -3775,6 +3778,7 @@ void MainFrame::init_menubar_as_editor()
         []() {
             return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
         }, this);
+#endif
 
     fileMenu->AppendSeparator();
     append_menu_item(

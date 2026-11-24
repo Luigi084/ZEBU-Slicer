@@ -490,10 +490,18 @@ void AppConfig::set_defaults()
     }
 
     // Orca
-    // ZEBU: no Orca/Bambu cloud traffic by default (profile sync, cloud login, telemetry).
+    // ZEBU: no Orca/Bambu cloud traffic (profile sync, cloud login, telemetry). With ZEBU_NO_CLOUD the setting
+    // is forced, so an old config or a hand edit cannot turn the cloud paths back on.
+#if ZEBU_NO_CLOUD
+    set_bool("stealth_mode", true);
+    set_bool("installed_networking", false);
+    set_bool("sync_user_preset", false);
+    set_bool("sync_system_preset", false);
+#else
     if (get("stealth_mode").empty()) {
         set_bool("stealth_mode", true);
     }
+#endif
     if (get("hide_login_side_panel").empty()) {
         set_bool("hide_login_side_panel", false);
     }
