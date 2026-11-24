@@ -43,6 +43,8 @@ private:
     void scan();
     void rebuild_lists();
     void add_rows(Zebu::PresetKind kind, wxScrolledWindow *panel, wxFlexGridSizer *grid);
+    void check_all(Zebu::PresetKind kind, bool value);
+    void assign_ticked(Zebu::PresetKind kind, int selection);
     void do_import();
     std::vector<std::string> checked_machines() const;
     std::vector<std::filesystem::path> extra_profile_dirs() const;
@@ -54,6 +56,8 @@ private:
     wxFlexGridSizer  *m_filament_grid {nullptr};
     wxScrolledWindow *m_process_panel {nullptr};
     wxFlexGridSizer  *m_process_grid {nullptr};
+    wxChoice         *m_bulk_filament {nullptr}; // "printer for the ticked presets", per tab
+    wxChoice         *m_bulk_process {nullptr};
     wxCheckBox       *m_duplicate {nullptr};
     wxCheckBox       *m_overwrite {nullptr};
 

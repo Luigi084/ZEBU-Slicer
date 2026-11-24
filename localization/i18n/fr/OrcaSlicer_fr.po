@@ -38208,3 +38208,12 @@ msgstr "ZEBU Slicer est un fork d'OrcaSlicer, distribué sous licence GNU Affero
 msgid "Import printers, filaments and processes from OrcaSlicer"
 msgstr "Importer imprimantes, filaments et process depuis OrcaSlicer"
 
+
+msgid "Tick all"
+msgstr "Tout cocher"
+
+msgid "Untick all"
+msgstr "Tout décocher"
+
+msgid "Printer for the ticked presets:"
+msgstr "Imprimante des presets cochés :"

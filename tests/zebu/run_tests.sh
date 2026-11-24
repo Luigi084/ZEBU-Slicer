@@ -21,6 +21,7 @@ if [ $# -ge 1 ]; then
     cp "$ROOT/tests/zebu/data/machine/"*.json "$FAKE/user/default/machine/"
     cp "$ROOT/tests/zebu/data/filament/"*.json "$FAKE/user/default/filament/"
     cp "$ROOT/tests/zebu/data/process/"*.json "$FAKE/user/default/process/"
+    cp "$ROOT/tests/zebu/data/OrcaSlicer.conf" "$FAKE/"
     "$CXX" "${FLAGS[@]}" "$ROOT/tests/zebu/test_orca_import.cpp" "$ROOT/src/slic3r/Utils/ZebuOrcaImport.cpp" -o "$OUT/t_imp"
     "$OUT/t_imp" "$FAKE" "$OUT/zebu_user"
 fi

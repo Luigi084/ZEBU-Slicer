@@ -2,6 +2,7 @@
 #include "ZebuOrcaImport.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <fstream>
 #include <functional>
@@ -372,11 +373,56 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
         scan.list(r.kind).push_back(std::move(p));
     }
 
-    // 4) Proposed bindings, among the user's own printers only.
+    // 4) Proposed bindings, among the user's own printers only. In order of confidence:
+    //    a) Orca's explicit compatible_printers, b) a "Name @Printer" suffix, c) a word of the printer name
+    //    found in the preset name and in no other printer's name, d) the filament / process Orca last used
+    //    on each printer (OrcaSlicer.conf, "orca_presets").
     std::set<std::string> machine_names;
     for (const auto &m : scan.machines)
         if (m.error.empty())
             machine_names.insert(m.name);
+
+    std::map<std::string, std::set<std::string>> last_used; // preset name -> printers it was last used on
+    {
+        json conf;
+        std::string err;
+        if (read_json(orca_data_dir / "OrcaSlicer.conf", conf, err) && conf.contains("orca_presets") && conf["orca_presets"].is_array()) {
+            for (const auto &entry : conf["orca_presets"]) {
+                const std::string machine = get_str(entry, "machine");
+                if (!machine_names.count(machine))
+                    continue;
+                for (auto it = entry.begin(); it != entry.end(); ++it) {
+                    const std::string &key = it.key();
+                    if ((key == "process" || key == "filament" || key.rfind("filament_", 0) == 0) && it->is_string() &&
+                        key.find("color") == std::string::npos && key.find("colour") == std::string::npos)
+                        last_used[it->get<std::string>()].insert(machine);
+                }
+            }
+        }
+    }
+
+    // Distinctive words of each printer name ("Raise", "G3D", "K1", "Zortrax"...).
+    auto words = [](const std::string &text) {
+        std::vector<std::string> out;
+        std::string cur;
+        for (char c : text + " ") {
+            if (std::isalnum(static_cast<unsigned char>(c)) || c == '+' || c == '-')
+                cur += char(std::tolower(static_cast<unsigned char>(c)));
+            else if (!cur.empty()) {
+                out.push_back(cur);
+                cur.clear();
+            }
+        }
+        return out;
+    };
+    static const std::set<std::string> generic = {"nozzle", "plus", "pro", "max", "mini", "the", "printer", "mm", "v2", "v3",
+                                                  "mk3", "mk4", "hs", "0", "2", "3", "4", "6", "8"};
+    std::map<std::string, std::set<std::string>> word_machines;
+    for (const std::string &m : machine_names)
+        for (const std::string &w : words(m))
+            if (w.size() >= 2 && !generic.count(w) && !std::all_of(w.begin(), w.end(), [](char c) { return std::isdigit((unsigned char) c) || c == '.'; }))
+                word_machines[w].insert(m);
+
     for (PresetKind kind : {PresetKind::Filament, PresetKind::Process})
         for (auto &p : scan.list(kind)) {
             for (const std::string &printer : p.orca_printers)
@@ -386,6 +432,21 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
                 const size_t at = p.name.rfind(" @");
                 if (at != std::string::npos && machine_names.count(p.name.substr(at + 2)))
                     p.suggested_printers.push_back(p.name.substr(at + 2));
+            }
+            if (p.suggested_printers.empty()) {
+                std::set<std::string> hits;
+                for (const std::string &w : words(p.name)) {
+                    auto it = word_machines.find(w);
+                    if (it != word_machines.end() && it->second.size() == 1)
+                        hits.insert(*it->second.begin());
+                }
+                if (hits.size() == 1)
+                    p.suggested_printers.push_back(*hits.begin());
+            }
+            if (p.suggested_printers.empty()) {
+                auto it = last_used.find(p.name);
+                if (it != last_used.end())
+                    p.suggested_printers.assign(it->second.begin(), it->second.end());
             }
         }
 

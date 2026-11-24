@@ -115,16 +115,37 @@ ZebuImportDialog::ZebuImportDialog(wxWindow *parent)
     machines_page->SetSizer(mp_sizer);
     book->AddPage(machines_page, _L("Printers"));
 
-    auto make_list_page = [book](const wxString &title, wxScrolledWindow *&panel, wxFlexGridSizer *&grid) {
-        panel = new wxScrolledWindow(book, wxID_ANY);
+    // Each list page: a tool row (tick all / none, give the ticked presets a printer) above the scrolled list.
+    auto make_list_page = [this, book](const wxString &title, Zebu::PresetKind kind, wxScrolledWindow *&panel,
+                                       wxFlexGridSizer *&grid, wxChoice *&bulk) {
+        auto *page  = new wxPanel(book);
+        auto *vs    = new wxBoxSizer(wxVERTICAL);
+        auto *tools = new wxBoxSizer(wxHORIZONTAL);
+        auto *all   = new wxButton(page, wxID_ANY, _L("Tick all"));
+        auto *none  = new wxButton(page, wxID_ANY, _L("Untick all"));
+        bulk        = new wxChoice(page, wxID_ANY, wxDefaultPosition, wxSize(220, -1));
+        auto *apply = new wxButton(page, wxID_ANY, _L("Apply"));
+        tools->Add(all, 0, wxRIGHT, 4);
+        tools->Add(none, 0, wxRIGHT, 16);
+        tools->Add(new wxStaticText(page, wxID_ANY, _L("Printer for the ticked presets:")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+        tools->Add(bulk, 0, wxRIGHT, 4);
+        tools->Add(apply, 0);
+        vs->Add(tools, 0, wxALL, 6);
+        panel = new wxScrolledWindow(page, wxID_ANY);
         panel->SetScrollRate(0, 12);
         grid = new wxFlexGridSizer(2, 4, 12);
         grid->AddGrowableCol(0, 1);
         panel->SetSizer(grid);
-        book->AddPage(panel, title);
+        vs->Add(panel, 1, wxEXPAND);
+        page->SetSizer(vs);
+        book->AddPage(page, title);
+        all->Bind(wxEVT_BUTTON, [this, kind](wxCommandEvent &) { check_all(kind, true); });
+        none->Bind(wxEVT_BUTTON, [this, kind](wxCommandEvent &) { check_all(kind, false); });
+        wxChoice *b = bulk;
+        apply->Bind(wxEVT_BUTTON, [this, kind, b](wxCommandEvent &) { assign_ticked(kind, b->GetSelection()); });
     };
-    make_list_page(_L("Filaments"), m_filament_panel, m_filament_grid);
-    make_list_page(_L("Processes"), m_process_panel, m_process_grid);
+    make_list_page(_L("Filaments"), Zebu::PresetKind::Filament, m_filament_panel, m_filament_grid, m_bulk_filament);
+    make_list_page(_L("Processes"), Zebu::PresetKind::Process, m_process_panel, m_process_grid, m_bulk_process);
     top->Add(book, 1, wxLEFT | wxRIGHT | wxEXPAND, 10);
 
     m_duplicate = new wxCheckBox(this, wxID_ANY, _L("One copy per printer when a preset goes to several printers (\"Name @Printer\")"));
@@ -207,6 +228,13 @@ void ZebuImportDialog::rebuild_lists()
         const int idx = m_machines->Append(wxString::FromUTF8(m.name.c_str()));
         m_machines->Check(idx, true);
     }
+    for (wxChoice *bulk : {m_bulk_filament, m_bulk_process}) {
+        bulk->Clear();
+        for (const std::string &m : m_importable_machines)
+            bulk->Append(wxString::FromUTF8(m.c_str()));
+        bulk->Append(_L("All imported printers"));
+        bulk->SetSelection(0);
+    }
     add_rows(Zebu::PresetKind::Filament, m_filament_panel, m_filament_grid);
     add_rows(Zebu::PresetKind::Process, m_process_panel, m_process_grid);
     m_filament_panel->FitInside();
@@ -252,6 +280,23 @@ void ZebuImportDialog::add_rows(Zebu::PresetKind kind, wxScrolledWindow *panel, 
         grid->Add(row.choice, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
         m_rows.push_back(row);
     }
+}
+
+void ZebuImportDialog::check_all(Zebu::PresetKind kind, bool value)
+{
+    for (Row &row : m_rows)
+        if (row.kind == kind)
+            row.check->SetValue(value);
+}
+
+void ZebuImportDialog::assign_ticked(Zebu::PresetKind kind, int selection)
+{
+    // The bulk list holds the machines then "All imported printers": the same first entries as each row's list.
+    if (selection < 0)
+        return;
+    for (Row &row : m_rows)
+        if (row.kind == kind && row.check->GetValue())
+            row.choice->SetSelection(selection);
 }
 
 std::vector<std::string> ZebuImportDialog::checked_machines() const
