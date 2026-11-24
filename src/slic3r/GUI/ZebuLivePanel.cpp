@@ -252,7 +252,7 @@ void ZebuLivePanel::on_status_timer()
             if (s.progress >= 0)
                 job += wxString::Format("  %d %%", int(std::lround(s.progress * 100)));
             if (running && s.eta_seconds >= 0)
-                job += "  " + _L("left") + " " + wxString::FromUTF8(Zebu::format_duration(s.eta_seconds).c_str());
+                job += "  " + _L("time left:") + " " + wxString::FromUTF8(Zebu::format_duration(s.eta_seconds).c_str());
             if (s.layer >= 0 && s.total_layers > 0)
                 job += wxString::Format("  %s %d/%d", _L("layer"), s.layer, s.total_layers);
         } else if (!s.message.empty()) {

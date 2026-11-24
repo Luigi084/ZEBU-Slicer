@@ -38026,3 +38026,185 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+# ---- ZEBU Slicer ----
+msgid "Import from OrcaSlicer"
+msgstr "Importer depuis OrcaSlicer"
+
+msgid "Pick the OrcaSlicer configuration folder, then the printers to import. Each filament and process is bound to the printer you choose for it and will only be listed for that printer."
+msgstr "Choisissez le dossier de configuration d'OrcaSlicer, puis les imprimantes à importer. Chaque filament et chaque process est rattaché à l'imprimante choisie et ne sera proposé que pour elle."
+
+msgid "OrcaSlicer folder:"
+msgstr "Dossier OrcaSlicer :"
+
+msgid "OrcaSlicer folder"
+msgstr "Dossier OrcaSlicer"
+
+msgid "Analyse"
+msgstr "Analyser"
+
+msgid "One copy per printer when a preset goes to several printers (\"Name @Printer\")"
+msgstr "Une copie par imprimante quand un preset va vers plusieurs imprimantes (\"Nom @Imprimante\")"
+
+msgid "Overwrite ZEBU presets that have the same name"
+msgstr "Écraser les presets ZEBU portant le même nom"
+
+msgid "%d printers, %d filaments, %d processes found."
+msgstr "%d imprimantes, %d filaments, %d process trouvés."
+
+msgid "%d cannot be imported (parent profile missing), they are not listed."
+msgstr "%d ne peuvent pas être importés (profil parent introuvable) et ne sont pas listés."
+
+msgid "No OrcaSlicer user preset found in this folder."
+msgstr "Aucun preset utilisateur OrcaSlicer dans ce dossier."
+
+msgid "All imported printers"
+msgstr "Toutes les imprimantes importées"
+
+msgid "As in OrcaSlicer:"
+msgstr "Comme dans OrcaSlicer :"
+
+msgid "Select at least one printer: filaments and processes are imported together with their printer."
+msgstr "Cochez au moins une imprimante : les filaments et process sont importés avec leur imprimante."
+
+msgid "%d presets imported."
+msgstr "%d presets importés."
+
+msgid "%d already existed and were kept (tick \"Overwrite\" to replace them)."
+msgstr "%d existaient déjà et ont été conservés (cochez \"Écraser\" pour les remplacer)."
+
+msgid "Errors:"
+msgstr "Erreurs :"
+
+msgid "Welcome to ZEBU Slicer"
+msgstr "Bienvenue dans ZEBU Slicer"
+
+msgid "Language:"
+msgstr "Langue :"
+
+msgid "ZEBU Slicer ships without vendor profiles: your printers, filaments and processes are your own, and each filament or process belongs to one printer. Start by importing them from OrcaSlicer, or create a printer."
+msgstr "ZEBU Slicer est livré sans profils constructeurs : vos imprimantes, filaments et process sont les vôtres, et chaque filament ou process appartient à une imprimante. Commencez par les importer depuis OrcaSlicer, ou créez une imprimante."
+
+msgid "Import from OrcaSlicer..."
+msgstr "Importer depuis OrcaSlicer..."
+
+msgid "Create a printer..."
+msgstr "Créer une imprimante..."
+
+msgid "Paused"
+msgstr "En pause"
+
+msgid "Cancelled"
+msgstr "Annulée"
+
+msgid "Ready"
+msgstr "Prête"
+
+msgid "No printer connection"
+msgstr "Pas de connexion à l'imprimante"
+
+msgid "No Moonraker host set for this printer"
+msgstr "Aucun hôte Moonraker défini pour cette imprimante"
+
+msgid "Printer unreachable"
+msgstr "Imprimante injoignable"
+
+msgid "No camera"
+msgstr "Pas de caméra"
+
+msgid "No camera found"
+msgstr "Aucune caméra trouvée"
+
+msgid "Waiting for camera..."
+msgstr "En attente de la caméra..."
+
+msgid "time left:"
+msgstr "reste"
+
+msgid "Downloading... %.1f / %.1f MB"
+msgstr "Téléchargement... %.1f / %.1f Mo"
+
+msgid "Download cancelled."
+msgstr "Téléchargement annulé."
+
+msgid "ZEBU Slicer update"
+msgstr "Mise à jour de ZEBU Slicer"
+
+msgid "The update could not be downloaded."
+msgstr "La mise à jour n'a pas pu être téléchargée."
+
+msgid "The downloaded file does not match its published checksum. The update was not installed."
+msgstr "Le fichier téléchargé ne correspond pas à sa somme de contrôle publiée. La mise à jour n'a pas été installée."
+
+msgid "The update could not be saved to the temporary folder."
+msgstr "La mise à jour n'a pas pu être enregistrée dans le dossier temporaire."
+
+msgid "ZEBU Slicer will now close to install the update, then start again."
+msgstr "ZEBU Slicer va se fermer pour installer la mise à jour, puis redémarrer."
+
+msgid "The update could not be written next to the AppImage (is its folder writable?)."
+msgstr "La mise à jour n'a pas pu être écrite à côté de l'AppImage (son dossier est-il accessible en écriture ?)."
+
+msgid "The AppImage could not be replaced."
+msgstr "L'AppImage n'a pas pu être remplacée."
+
+msgid "The update is installed. Restart ZEBU Slicer now?"
+msgstr "La mise à jour est installée. Redémarrer ZEBU Slicer maintenant ?"
+
+msgid "ZEBU Slicer %s is available (you have %s)."
+msgstr "ZEBU Slicer %s est disponible (vous avez la %s)."
+
+msgid "Open the release page"
+msgstr "Ouvrir la page de la version"
+
+msgid "Skip this version"
+msgstr "Ignorer cette version"
+
+msgid "This build has no update repository configured (ZEBU_UPDATE_REPO)."
+msgstr "Cette version n'a pas de dépôt de mise à jour configuré (ZEBU_UPDATE_REPO)."
+
+msgid "Could not check for updates (HTTP %u)."
+msgstr "Impossible de vérifier les mises à jour (HTTP %u)."
+
+msgid "ZEBU Slicer %s is up to date."
+msgstr "ZEBU Slicer %s est à jour."
+
+msgid "Could not check for updates."
+msgstr "Impossible de vérifier les mises à jour."
+
+msgid "Filaments and processes belong to one printer"
+msgstr "Filaments et process rattachés à une imprimante"
+
+msgid "A filament or process preset is only listed for the printers it is bound to. Saving a preset under a new name binds it to the current printer. Takes effect after a restart."
+msgstr "Un preset de filament ou de process n'est proposé que pour les imprimantes auxquelles il est rattaché. Enregistrer un preset sous un nouveau nom le rattache à l'imprimante courante. Prend effet au redémarrage."
+
+msgid "Hide vendor (system) presets"
+msgstr "Masquer les presets constructeurs (système)"
+
+msgid "Vendor presets stay available as templates but are not listed with your presets. Takes effect after a restart."
+msgstr "Les presets constructeurs restent disponibles comme modèles mais ne sont pas listés avec vos presets. Prend effet au redémarrage."
+
+msgid "Show the ZEBU Live panel"
+msgstr "Afficher le panneau ZEBU Live"
+
+msgid "Camera, temperatures and progress of the selected printer (Moonraker) in the Prepare sidebar. Takes effect after a restart."
+msgstr "Caméra, températures et progression de l'imprimante sélectionnée (Moonraker) dans le panneau latéral de l'onglet Préparer. Prend effet au redémarrage."
+
+msgid "Check for ZEBU Slicer updates at startup"
+msgstr "Rechercher les mises à jour de ZEBU Slicer au démarrage"
+
+msgid "Looks for a newer release on the ZEBU Slicer GitHub page."
+msgstr "Recherche une version plus récente sur la page GitHub de ZEBU Slicer."
+
+msgid "Include beta versions in updates"
+msgstr "Inclure les versions bêta dans les mises à jour"
+
+msgid "Offer pre-release (beta) versions as updates."
+msgstr "Proposer les pré-versions (bêta) comme mises à jour."
+
+msgid "ZEBU Slicer is a fork of OrcaSlicer, distributed under the GNU Affero General Public License v3. It keeps OrcaSlicer's engine and adds per-machine presets, a live printer panel and a leaner, more parallel code path."
+msgstr "ZEBU Slicer est un fork d'OrcaSlicer, distribué sous licence GNU Affero General Public License v3. Il reprend le moteur d'OrcaSlicer et ajoute des presets par machine, un panneau de suivi des imprimantes et un code allégé, plus parallèle."
+
+msgid "Import printers, filaments and processes from OrcaSlicer"
+msgstr "Importer imprimantes, filaments et process depuis OrcaSlicer"
+
