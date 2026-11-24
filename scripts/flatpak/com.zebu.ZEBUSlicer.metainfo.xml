@@ -7,6 +7,8 @@
     <developer id="com.zebu">
         <name>ZEBU Slicer</name>
     </developer>
+    <url type="homepage">https://github.com/Luigi084/ZEBU-Slicer</url>
+    <url type="bugtracker">https://github.com/Luigi084/ZEBU-Slicer/issues</url>
     <metadata_license>0BSD</metadata_license>
     <project_license>AGPL-3.0-only</project_license>
     <content_rating type="oars-1.1" />

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ZEBU Slicer AppImage packaging (run from the "package_appimage" directory by build_linux_image.sh).
-set -e
+set -euo pipefail
 APPIMAGETOOLURL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-$(uname -m).AppImage"
 REPO_ROOT="@CMAKE_SOURCE_DIR@"
 
@@ -40,12 +40,16 @@ mkdir -p usr/share/applications
 cp ${APP_ID}.desktop usr/share/applications/
 
 mkdir -p usr/share/metainfo
+cp "${REPO_ROOT}/scripts/flatpak/${APP_ID}.metainfo.xml" "usr/share/metainfo/${APP_ID}.metainfo.xml"
 cp "${REPO_ROOT}/scripts/flatpak/${APP_ID}.metainfo.xml" "usr/share/metainfo/${APP_ID}.appdata.xml"
 
 export ARCH=$(uname -m)
-if [ -f /.dockerenv ] ; then
-  ../appimagetool.AppImage --appimage-extract-and-run . "${APP_IMAGE}"
-else
-  ../appimagetool.AppImage . "${APP_IMAGE}" $([ -n "${container}" ] && echo '--appimage-extract-and-run')
+# appimagetool is itself an AppImage: run it in extract mode so it works without FUSE
+# (GitHub's Ubuntu 24.04 runners and most containers have no libfuse2).
+# AppStream metadata: validated here offline (an online check would make the build depend on the network),
+# then appimagetool is told not to validate it again.
+if command -v appstreamcli > /dev/null; then
+    appstreamcli validate --no-net "usr/share/metainfo/${APP_ID}.metainfo.xml"
 fi
+../appimagetool.AppImage --appimage-extract-and-run --no-appstream . "${APP_IMAGE}"
 chmod +x "${APP_IMAGE}"

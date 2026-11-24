@@ -461,6 +461,9 @@ echo -n "Creating Appimage for distribution..."
         rm -fR package_appimage
     else
         popd > /dev/null
+        # ZEBU: fail loudly instead of finishing "successfully" without an AppImage.
+        echo "ERROR: AppImage creation failed (see build_appimage.sh output above)" >&2
+        exit 1
     fi
 # } &> $ROOT/Build.log # Capture all command output
 echo "done"
