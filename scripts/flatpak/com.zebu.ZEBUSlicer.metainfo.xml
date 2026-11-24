@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+    <id>com.zebu.ZEBUSlicer</id>
+    <launchable type="desktop-id">com.zebu.ZEBUSlicer.desktop</launchable>
+    <name>ZEBU Slicer</name>
+    <summary>FDM slicer forked from OrcaSlicer, with per-machine presets and a live printer panel</summary>
+    <developer id="com.zebu">
+        <name>ZEBU Slicer</name>
+    </developer>
+    <metadata_license>0BSD</metadata_license>
+    <project_license>AGPL-3.0-only</project_license>
+    <content_rating type="oars-1.1" />
+    <description>
+        <p>ZEBU Slicer is a fork of OrcaSlicer. It keeps OrcaSlicer's slicing engine and adds
+            presets bound to a single machine, import of OrcaSlicer presets, a live panel showing
+            the printers' camera and temperatures (Moonraker), and a more parallel code path.</p>
+        <p>OrcaSlicer is developed by SoftFever and the OrcaSlicer contributors.</p>
+    </description>
+    <releases>
+        <release version="0.1.0-beta" date="2026-11-24" type="development" />
+    </releases>
+</component>

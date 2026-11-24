@@ -1,12 +1,12 @@
 [Desktop Entry]
-Name=OrcaSlicer
+Name=ZEBU Slicer
 GenericName=3D Printing Software
-Icon=OrcaSlicer
-Exec=orca-slicer %U
+Icon=com.zebu.ZEBUSlicer
+Exec=zebu-slicer %U
 Terminal=false
 Type=Application
-MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;x-scheme-handler/orcaslicer;model/step;
+MimeType=model/stl;model/3mf;application/vnd.ms-3mfdocument;application/prs.wavefront-obj;application/x-amf;model/step;
 Categories=Graphics;3DGraphics;Engineering;
-Keywords=3D;Printing;Slicer;slice;3D;printer;convert;gcode;stl;obj;amf;SLA
+Keywords=3D;Printing;Slicer;slice;3D;printer;convert;gcode;stl;obj;amf
 StartupNotify=false
-StartupWMClass=orca-slicer
+StartupWMClass=zebu-slicer

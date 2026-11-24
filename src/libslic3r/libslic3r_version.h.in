@@ -5,6 +5,10 @@
 #define SLIC3R_APP_KEY "@SLIC3R_APP_KEY@"
 #define SLIC3R_VERSION "@SLIC3R_VERSION@"
 #define SoftFever_VERSION "@SoftFever_VERSION@"
+#define ZEBU_VERSION "@ZEBU_VERSION@"
+#define ZEBU_UPDATE_REPO "@ZEBU_UPDATE_REPO@"
+// gettext catalog name: the .mo files keep the upstream name so Orca's translations work unchanged.
+#define SLIC3R_L10N_CATALOG "OrcaSlicer"
 #define SLIC3R_BUILD_ID "@SLIC3R_BUILD_ID@"
 //#define SLIC3R_RC_VERSION "@SLIC3R_VERSION@"
 #define BBL_INTERNAL_TESTING @BBL_INTERNAL_TESTING@
