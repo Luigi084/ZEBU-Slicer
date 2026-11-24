@@ -62,8 +62,8 @@ def emblem(dark=False):
     return "".join(s)
 
 
-def letters(transform):
-    s = [f'<g transform="{transform}">', f'<path d="{HOLES}" fill="{WHITE}"/>']
+def letters(transform, holes=WHITE):
+    s = [f'<g transform="{transform}">', f'<path d="{HOLES}" fill="{holes}"/>']
     for tag, geo, rule in LETTERS:
         attr = "points" if tag == "polygon" else "d"
         s.append(f'<{tag} {attr}="{geo}" fill="{BLACK}" fill-rule="{rule}" stroke="{BLACK}" '
@@ -122,6 +122,19 @@ def horizontal_svg(w, h, dark=False):
     return svg(f"{x0:.2f} {y0:.2f} {bw:.2f} {bh:.2f}", w, h, body)
 
 
+def splash_svg(dark=False):
+    # 480 x 480 splash: the logo fills the top ~68 %; the app draws the version (72 %) and the
+    # loading message (85 %) below it, on #FFFFFF (light) or #2D2D31 (dark).
+    bg = "#2D2D31" if dark else WHITE
+    s = 0.27
+    tx = (480 - 1050 * s) / 2
+    ty = 38
+    body = (f'<rect x="0" y="0" width="480" height="480" fill="{bg}"/>'
+            f'<g transform="translate({tx:.2f},{ty + 28 * s:.2f}) scale({s})">'
+            + emblem(dark) + letters("translate(0,600)", holes=bg) + "</g>")
+    return svg("0 0 480 480", 480, 480, body)
+
+
 def full_svg():
     body = emblem() + letters("translate(0,600)")
     return svg("-60 -60 1170 1030", 1170, 1030, body)
@@ -142,6 +155,8 @@ def main():
     narrow = icon_svg(815, 1024)
 
     svgs = {
+        "splash_logo.svg": splash_svg(),
+        "splash_logo_dark.svg": splash_svg(dark=True),
         "OrcaSlicer.svg": icon_svg(64, 64),
         "OrcaSlicer_gradient.svg": square,
         "OrcaSlicer_gradient_circle.svg": square,

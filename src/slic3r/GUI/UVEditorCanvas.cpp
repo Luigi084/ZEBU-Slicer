@@ -1912,7 +1912,7 @@ private:
 
         wxColour fill = c.bg, border = c.frame, text = c.ink;
         if (m_accent) {
-            fill   = (m_hover && enabled) ? wxColour(0x26, 0xa6, 0x9a) : teal;
+            fill   = (m_hover && enabled) ? wxColour(0xF9, 0x9A, 0x45) : teal;
             border = fill;
             text   = *wxWHITE;
         } else if (m_on) {

@@ -18,6 +18,10 @@
 <script type="text/javascript" src="../include/i18n.js"></script>		
 	
 <script type="text/javascript" src="js/home.js"></script>
+<!-- ZEBU: no Orca / Bambu cloud accounts. !important wins over the inline styles set by home.js. -->
+<style>
+#LoginArea, .BtnItem[menu='orca_cloud'] { display: none !important; }
+</style>
 </head>
 <body class="thin-scroll" onLoad="OnInit()">
 <div id="LeftBoard">

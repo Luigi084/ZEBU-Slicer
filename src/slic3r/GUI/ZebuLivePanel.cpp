@@ -137,6 +137,9 @@ void ZebuLivePanel::set_collapsed(bool collapsed)
     m_body->Show(!collapsed);
     m_title->SetLabel(collapsed ? wxString::FromUTF8("\xE2\x96\xB8 ZEBU Live") : wxString::FromUTF8("\xE2\x96\xBE ZEBU Live"));
     wxGetApp().app_config->set("zebu_live_collapsed", collapsed ? "1" : "0");
+    // The title's width changed with its label: re-layout the header, or "ZEBU Live" gets cut.
+    m_title->InvalidateBestSize();
+    m_header->Layout();
     Layout();
     if (GetParent())
         GetParent()->Layout();

@@ -465,7 +465,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             b->SetBackgroundColour(b == m_active_tool_btn ? wxColour(0x52, 0xC7, 0xB8) : dp_ribbon_hover());
             b->Refresh(); e.Skip(); });
         b->Bind(wxEVT_LEAVE_WINDOW, [this, b](wxMouseEvent& e) {
-            b->SetBackgroundColour(b == m_active_tool_btn ? wxColour(0x00, 0x96, 0x88) : dp_ribbon_bg());
+            b->SetBackgroundColour(b == m_active_tool_btn ? wxColour(0xF7, 0x82, 0x1B) : dp_ribbon_bg());
             b->Refresh(); e.Skip(); });
         // Mark this tool active (teal) on press — a separate event from the
         // button's command handler, so it never swallows the click action.
