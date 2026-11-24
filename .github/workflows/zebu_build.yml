@@ -23,8 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
+      - name: Restore dependencies
+        id: deps-cache
+        uses: actions/cache/restore@v4
         with:
           path: deps/build
           key: zebu-deps-win-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
@@ -34,8 +36,16 @@ jobs:
         run: choco install nsis -y --no-progress
 
       - name: Build dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
         shell: cmd
         run: build_win.bat -d
+
+      - name: Save dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps/build
+          key: ${{ steps.deps-cache.outputs.cache-primary-key }}
 
       - name: Build ZEBU Slicer
         shell: cmd
@@ -63,8 +73,10 @@ jobs:
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
 
-      - name: Cache dependencies
-        uses: actions/cache@v4
+      # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
+      - name: Restore dependencies
+        id: deps-cache
+        uses: actions/cache/restore@v4
         with:
           path: deps/build
           key: zebu-deps-linux-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
@@ -72,8 +84,19 @@ jobs:
       - name: System packages
         run: ./build_linux.sh -u
 
-      - name: Build dependencies, ZEBU Slicer and the AppImage
-        run: ./build_linux.sh -dsir
+      - name: Build dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: ./build_linux.sh -dr
+
+      - name: Save dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps/build
+          key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      - name: Build ZEBU Slicer and the AppImage
+        run: ./build_linux.sh -sir
 
       - name: Checksum
         run: |
