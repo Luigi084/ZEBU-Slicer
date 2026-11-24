@@ -3461,6 +3461,13 @@ bool GUI_App::on_init_inner()
 
     BOOST_LOG_TRIVIAL(info) << "loading systen presets...";
     preset_bundle = new PresetBundle();
+    // ZEBU: per-machine presets and hidden system presets (both on by default, see AppConfig::set_defaults).
+    Preset::zebu_strict_binding      = app_config->get_bool("zebu_strict_presets");
+    Preset::zebu_hide_system_presets = app_config->get_bool("zebu_hide_system_presets");
+    PresetCollection::zebu_bind_printer = []() -> std::string {
+        PresetBundle *bundle = wxGetApp().preset_bundle;
+        return bundle ? bundle->printers.get_edited_preset().name : std::string();
+    };
 
     // just checking for existence of Slic3r::data_dir is not enough : it may be an empty directory
     // supplied as argument to --datadir; in that case we should still run the wizard

@@ -266,6 +266,14 @@ public:
     // External preset points to a configuration, which has been loaded but not imported
     // into the Slic3r default configuration location.
     bool                is_external = false;
+
+    // ZEBU: "strict" per-machine presets. When enabled (by the GUI, from the app config), a user filament or
+    // process preset is compatible only with the printers listed in its compatible_printers; an unbound one
+    // (empty list) is compatible with none. System, default, external and project-embedded presets keep the
+    // upstream rules. Off by default so the CLI behaves as upstream.
+    static bool         zebu_strict_binding;
+    // ZEBU: system (vendor) presets are kept as templates/parents but never listed in the preset combo boxes.
+    static bool         zebu_hide_system_presets;
     // System preset is read-only.
     bool                is_system   = false;
     // Preset is visible, if it is associated with a printer model / variant that is enabled in the AppConfig
@@ -578,6 +586,9 @@ public:
     typedef std::deque<Preset>::iterator Iterator;
     typedef std::deque<Preset>::const_iterator ConstIterator;
     typedef std::function<void(Preset* preset, std::string sync_info)> SyncFunc;
+    // ZEBU: returns the name of the active printer, which newly saved filament / process presets get bound to.
+    // Set once by the GUI (it owns the single live PresetBundle); unset in the CLI.
+    static std::function<std::string()> zebu_bind_printer;
     //BBS get m_presets begin
     Iterator        lbegin() { return m_presets.begin(); }
     //BBS: validate_preset
@@ -933,6 +944,7 @@ public:
     std::string     get_preset_alias(Preset &preset, bool force = false);
 
     size_t num_default_presets() { return m_num_default_presets; }
+
 
 protected:
     PresetCollection() = default;

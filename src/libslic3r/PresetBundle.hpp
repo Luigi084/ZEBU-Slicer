@@ -679,6 +679,9 @@ public:
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
     void                        load_installed_printers(const AppConfig &config);
+    // ZEBU: hide every system (vendor) preset from the lists when Preset::zebu_hide_system_presets is set.
+    // They stay loaded as parents of the user presets and as templates for "Create printer / filament".
+    void                        zebu_apply_visibility();
 
     const std::string&          get_preset_name_by_alias(const Preset::Type& preset_type, const std::string& alias) const;
 

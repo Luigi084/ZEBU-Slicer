@@ -937,8 +937,21 @@ bool is_compatible_with_parent_printer(const PresetWithVendorProfile& preset, co
                compatible_printers->values.end();
 }
 
+bool Preset::zebu_strict_binding      = false;
+bool Preset::zebu_hide_system_presets = false;
+std::function<std::string()> PresetCollection::zebu_bind_printer;
+
 bool is_compatible_with_printer(const PresetWithVendorProfile &preset, const PresetWithVendorProfile &active_printer, const DynamicPrintConfig *extra_config)
 {
+    // ZEBU: a user filament / process belongs to the machines it is bound to, and to no other.
+    if (Preset::zebu_strict_binding && !active_printer.preset.name.empty() &&
+        (preset.preset.type == Preset::TYPE_FILAMENT || preset.preset.type == Preset::TYPE_PRINT) &&
+        !preset.preset.is_default && !preset.preset.is_system && !preset.preset.is_external &&
+        !preset.preset.is_project_embedded) {
+        const auto *bound = dynamic_cast<const ConfigOptionStrings*>(preset.preset.config.option("compatible_printers"));
+        return bound != nullptr &&
+               std::find(bound->values.begin(), bound->values.end(), active_printer.preset.name) != bound->values.end();
+    }
     // Orca: we allow cross vendor compatibility
 	// if (preset.vendor != nullptr && preset.vendor != active_printer.vendor)
 	// 	// The current profile has a vendor assigned and it is different from the active print's vendor.
@@ -3446,6 +3459,24 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
 void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset)
 {
     Preset curr_preset = _curr_preset ? *_curr_preset : m_edited_preset;
+    // ZEBU: bind the saved filament / process to the current machine. "Save as" (new name) binds it to that
+    // machine only; overwriting keeps its existing machines and adds the current one if it was missing.
+    if (Preset::zebu_strict_binding && zebu_bind_printer &&
+        (m_type == Preset::TYPE_PRINT || m_type == Preset::TYPE_FILAMENT)) {
+        const std::string printer = zebu_bind_printer();
+        if (!printer.empty()) {
+            const Preset *existing = this->find_preset(new_name, false, true);
+            const bool    is_new   = existing == nullptr || existing->is_system || existing->is_default;
+            auto *bound = curr_preset.config.option<ConfigOptionStrings>("compatible_printers", true);
+            if (is_new)
+                bound->values = { printer };
+            else if (std::find(bound->values.begin(), bound->values.end(), printer) == bound->values.end())
+                bound->values.push_back(printer);
+            // An explicit list replaces any inherited condition.
+            if (auto *cond = curr_preset.config.option<ConfigOptionString>("compatible_printers_condition"))
+                cond->value.clear();
+        }
+    }
     //BBS: add lock logic for sync preset in background
     std::string final_inherits;
     lock();

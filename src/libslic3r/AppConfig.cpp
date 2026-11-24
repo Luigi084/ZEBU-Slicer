@@ -129,6 +129,14 @@ void AppConfig::reset()
 void AppConfig::set_defaults()
 {
     if (m_mode == EAppMode::Editor) {
+        // ZEBU: filaments / processes bound to one machine, no vendor presets in the lists.
+        if (get("zebu_strict_presets").empty())
+            set_bool("zebu_strict_presets", true);
+        if (get("zebu_hide_system_presets").empty())
+            set_bool("zebu_hide_system_presets", true);
+        // ZEBU: the bundled Orca/Bambu cloud features are off; only the ZEBU updater talks to the network.
+        if (get("zebu_check_updates").empty())
+            set_bool("zebu_check_updates", true);
 #ifdef SUPPORT_AUTO_CENTER
         // Reset the empty fields to defaults.
         if (get("autocenter").empty())

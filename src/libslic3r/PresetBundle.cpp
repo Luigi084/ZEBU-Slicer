@@ -3687,6 +3687,22 @@ void PresetBundle::load_installed_printers(const AppConfig &config)
 	this->update_system_maps();
     for (auto &preset : printers)
         preset.set_visible_from_appconfig(config);
+    this->zebu_apply_visibility();
+}
+
+void PresetBundle::zebu_apply_visibility()
+{
+    if (!Preset::zebu_hide_system_presets)
+        return;
+    auto hide = [](PresetCollection &collection) {
+        // begin() skips the "- default -" presets, whose visibility the collection manages itself.
+        for (Preset &preset : collection)
+            if (preset.is_system)
+                preset.is_visible = false;
+    };
+    hide(this->printers);
+    hide(this->filaments);
+    hide(this->prints);
 }
 
 const std::string& PresetBundle::get_preset_name_by_alias( const Preset::Type& preset_type, const std::string& alias) const
@@ -3812,6 +3828,7 @@ void PresetBundle::load_installed_filaments(AppConfig &config)
 
     for (auto &preset : filaments)
         preset.set_visible_from_appconfig(config);
+    this->zebu_apply_visibility();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": exit.");
 }
 
@@ -4027,6 +4044,8 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     // Update visibility of filament and sla material presets
     this->load_installed_filaments(config);
     this->load_installed_sla_materials(config);
+    // ZEBU: system process presets have no "installed" flag; hide them here too.
+    this->zebu_apply_visibility();
 
     // Parse the initial print / filament / printer profile names.
     // std::string initial_sla_print_profile_name    = remove_ini_suffix(config.get("presets", PRESET_SLA_PRINT_NAME));
