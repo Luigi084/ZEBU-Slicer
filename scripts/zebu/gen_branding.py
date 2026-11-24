@@ -135,6 +135,25 @@ def splash_svg(dark=False):
     return svg("0 0 480 480", 480, 480, body)
 
 
+# Corner marks of the bed texture (from OrcaSlicer's Custom/orcaslicer_bed_texture.svg, 512 x 512).
+BED_CORNERS = ['M511.15,502.65c0,4.7-3.81,8.5-8.5,8.5h-10.07v.85h19.42v-19.42h-.85v10.07Z', 'M9.35,511.15c-4.7,0-8.5-3.81-8.5-8.5v-10.07h-.85v19.42h19.42v-.85h-10.07Z', 'M.85,9.35C.85,4.65,4.65.85,9.35.85h10.07V0H0v19.42h.85v-10.07Z', 'M502.65.85c4.7,0,8.5,3.81,8.5,8.5v10.07h.85V0h-19.42v.85h10.07Z']
+
+
+def bed_texture_svg():
+    # Bed texture of the printers based on the "Custom" profile (file name kept, content ZEBU):
+    # orange corner marks, and the ZEBU emblem + "ZEBU" centred at the front of the bed (y 441..494).
+    # The notches of the "B" stay transparent so the bed shows through.
+    h = 53.0
+    se = h / (EY1 - EY0)          # emblem scale
+    sl = 40.0 / 300.0             # letters: 40 units high
+    ew, lw, gap = (EX1 - EX0) * se, 1050 * sl, 10.0
+    x0 = 256 - (ew + gap + lw) / 2
+    body = "".join(f'<path d="{d}" fill="{ORANGE}"/>' for d in BED_CORNERS)
+    body += f'<g transform="translate({x0 - EX0 * se:.2f},{441.26 - EY0 * se:.2f}) scale({se:.5f})">' + emblem() + "</g>"
+    body += letters(f"translate({x0 + ew + gap:.2f},{441.26 + (h - 40) / 2:.2f}) scale({sl:.5f})", holes="none")
+    return svg("0 0 512 512", 512, 512, body)
+
+
 def full_svg():
     body = emblem() + letters("translate(0,600)")
     return svg("-60 -60 1170 1030", 1170, 1030, body)
@@ -170,6 +189,8 @@ def main():
     for name, text in svgs.items():
         with open(os.path.join(img, name), "w") as f:
             f.write(text)
+    with open(os.path.join(root, "resources", "profiles", "Custom", "orcaslicer_bed_texture.svg"), "w") as f:
+        f.write(bed_texture_svg())
     with open(os.path.join(root, "resources", "zebu", "zebu_logo.svg"), "w") as f:
         f.write(full_svg())
 

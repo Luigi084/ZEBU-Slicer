@@ -35,6 +35,24 @@ NUM = r"(0x[0-9a-fA-F]{1,2}|\d{1,3})"
 RGB_RE = re.compile(r"(wxColour\s*\(|rgba?\s*\()\s*" + NUM + r"(\s*,\s*)" + NUM + r"(\s*,\s*)" + NUM)
 
 
+# ImVec4(0.00f, 0.59f, 0.53f, a): Orca's accent written as rounded floats.
+FLOAT_RE = re.compile(r"\b0\.0+f\s*,\s*0\.59f\s*,\s*0\.53f")
+FLOAT_NEW = "0.97f, 0.51f, 0.11f"
+# IM_COL32(0, 150, 136 / ImColor(0, 150, 136 / teal(0x00, 0x96, 0x88): any call with those three components.
+CALL_RE = re.compile(r"((?:IM_COL32|ImColor|\w+)\s*\()\s*" + NUM + r"(\s*,\s*)" + NUM + r"(\s*,\s*)" + NUM + r"(?=\s*[,)])")
+# {0.0f, 150.f / 255.0f, 136.0f / 255} and { 38 / 255.f, 166 / 255.f, 154 / 255.f }: components as N / 255.
+COMP = r"(?:(\d+)(?:\.0*)?f?\s*/\s*255(?:\.0*)?f?|0(?:\.0*)?f)"
+DIV_RE = re.compile(COMP + r"(\s*,\s*)" + COMP + r"(\s*,\s*)" + COMP)
+
+
+def sub_div(m):
+    key = tuple(int(m.group(i)) if m.group(i) else 0 for i in (1, 3, 5))
+    if key not in RGB:
+        return m.group(0)
+    r, g, b = RGB[key]
+    return f"{r}.f / 255.f{m.group(2)}{g}.f / 255.f{m.group(4)}{b}.f / 255.f"
+
+
 def _num(s):
     return int(s, 16) if s.lower().startswith("0x") else int(s)
 
@@ -80,6 +98,10 @@ def main():
                 except UnicodeDecodeError:
                     continue
                 new = RGB_RE.sub(sub_rgb, HEX_RE.sub(sub_hex, text))
+                if name.endswith((".cpp", ".hpp", ".h")):
+                    new = FLOAT_RE.sub(FLOAT_NEW, new)
+                    new = CALL_RE.sub(sub_rgb, new)
+                    new = DIV_RE.sub(sub_div, new)
                 if new != text:
                     with open(path, "wb") as f:
                         f.write(new.encode("utf-8"))

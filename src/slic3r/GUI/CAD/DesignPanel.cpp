@@ -4501,7 +4501,7 @@ void DesignPanel::set_active_tool_btn(ScalableButton* b)
     // Onshape-style: the active tool's button gets the Orca accent (teal); the
     // rest revert to the ribbon surface. nullptr clears the whole strip.
     m_active_tool_btn = b;
-    const wxColour bg = dp_ribbon_bg(), teal(0x00, 0x96, 0x88);
+    const wxColour bg = dp_ribbon_bg(), teal(0xF7, 0x82, 0x1B);
     for (auto* btn : m_tool_btns) {
         if (btn == nullptr) continue;
         btn->SetBackgroundColour(btn == b ? teal : bg);

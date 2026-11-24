@@ -18,6 +18,7 @@
 
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "Widgets/StateColor.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/ZebuMoonraker.hpp"
 
@@ -58,12 +59,17 @@ wxString state_text(const std::string &state)
 ZebuLivePanel::ZebuLivePanel(wxWindow *parent)
     : wxPanel(parent, wxID_ANY), m_alive(std::make_shared<bool>(true)), m_status_timer(this), m_camera_timer(this)
 {
-    SetBackgroundColour(*wxWHITE);
+    // Light / dark theme: the same colours as the rest of the sidebar.
+    const bool     dark      = wxGetApp().dark_mode();
+    const wxColour bg        = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
+    const wxColour header_bg = dark ? bg.ChangeLightness(115) : wxColour(0xF1, 0xF1, 0xF1);
+    const wxColour fg        = dark ? wxColour("#DFDFDF") : wxColour("#262E30");
+    SetBackgroundColour(bg);
     auto *top = new wxBoxSizer(wxVERTICAL);
 
     // Header: click to fold / unfold.
     m_header = new wxPanel(this, wxID_ANY);
-    m_header->SetBackgroundColour(wxColour(0xF1, 0xF1, 0xF1));
+    m_header->SetBackgroundColour(header_bg);
     auto *hs = new wxBoxSizer(wxHORIZONTAL);
     m_title  = new wxStaticText(m_header, wxID_ANY, "ZEBU Live");
     wxFont bold = m_title->GetFont();
@@ -76,7 +82,7 @@ ZebuLivePanel::ZebuLivePanel(wxWindow *parent)
     top->Add(m_header, 0, wxEXPAND);
 
     m_body  = new wxPanel(this, wxID_ANY);
-    m_body->SetBackgroundColour(*wxWHITE);
+    m_body->SetBackgroundColour(bg);
     auto *bs = new wxBoxSizer(wxVERTICAL);
     m_camera = new wxPanel(m_body, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(180)));
     m_camera->SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -94,6 +100,9 @@ ZebuLivePanel::ZebuLivePanel(wxWindow *parent)
     m_temps = new wxStaticText(m_body, wxID_ANY, wxEmptyString);
     m_job   = new wxStaticText(m_body, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_MIDDLE);
     m_gauge = new wxGauge(m_body, wxID_ANY, 1000, wxDefaultPosition, wxSize(-1, FromDIP(6)));
+    for (wxWindow *w : {static_cast<wxWindow *>(m_title), static_cast<wxWindow *>(m_state), static_cast<wxWindow *>(m_temps),
+                        static_cast<wxWindow *>(m_job)})
+        w->SetForegroundColour(fg);
     bs->Add(m_camera, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
     bs->Add(m_temps, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(8));
     bs->Add(m_job, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(4));
