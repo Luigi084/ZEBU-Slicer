@@ -710,6 +710,8 @@ public:
     bool            checked_tab(Tab* tab);
     //BBS: add preset combox re-active logic
     void            load_current_presets(bool active_preset_combox = false, bool check_printer_presets = true);
+    // ZEBU: switch the UI language (canonical wx name, e.g. "fr_FR") and rebuild the GUI. False if it failed.
+    bool            zebu_switch_language(const std::string &language);
     void            process_delete_presets();
     // Queues the cloud delete of a user preset synced to the signed-in account; any other preset is ignored.
     void            delete_preset_from_cloud(const Preset& preset);

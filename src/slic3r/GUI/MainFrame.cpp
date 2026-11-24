@@ -48,6 +48,7 @@
 #include <ctime>
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
+#include "slic3r/GUI/ZebuImportDialog.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
 #include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/Widgets/SideButton.hpp"
@@ -3127,6 +3128,10 @@ void MainFrame::init_menubar_as_editor()
             [this]() { return can_add_models(); });
         append_menu_item(import_menu, wxID_ANY, _L("Import Configs") + dots /*+ "\t" + ctrl + "I"*/, _L("Load configs"),
             [this](wxCommandEvent&) { load_config_file(); }, "menu_import", nullptr,
+            [](){return true; }, this);
+        // ZEBU
+        append_menu_item(import_menu, wxID_ANY, _L("Import from OrcaSlicer") + dots, _L("Import printers, filaments and processes from OrcaSlicer"),
+            [this](wxCommandEvent&) { zebu_show_orca_import(this); }, "menu_import", nullptr,
             [](){return true; }, this);
 
         append_submenu(fileMenu, import_menu, wxID_ANY, _L("Import"), "");

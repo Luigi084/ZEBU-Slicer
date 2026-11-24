@@ -6,6 +6,7 @@
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Platform.hpp"
 #include "GUI_App.hpp"
+#include "ZebuImportDialog.hpp"
 #include "BBLTopbar.hpp"
 #include "Shortcuts.hpp"
 #include "DeviceCore/DevConfigUtil.h"
@@ -10172,9 +10173,28 @@ void GUI_App::window_pos_center(wxTopLevelWindow *window)
     }
 }
 
+bool GUI_App::zebu_switch_language(const std::string &language)
+{
+    const std::string previous_language = app_config->get("language");
+    if (language.empty() || language == previous_language)
+        return true;
+    app_config->set("language", language);
+    if (!load_language(wxString::FromUTF8(language), false)) {
+        app_config->set("language", previous_language);
+        return false;
+    }
+    m_action_registry->relocalize_builtins();
+    app_config->save();
+    recreate_GUI(_L("Changing application language"));
+    return true;
+}
+
 bool GUI_App::config_wizard_startup()
 {
-    if (!m_app_conf_exists || preset_bundle->printers.only_default_printers()) {
+    // ZEBU: no vendor wizard. With no user printer yet, offer to import from OrcaSlicer or create a printer.
+    if (zebu_first_run(mainframe))
+        return true;
+    if (false) {
         BOOST_LOG_TRIVIAL(info) << "run wizard...";
         run_wizard(RunReason::RR_DATA_EMPTY);
         BOOST_LOG_TRIVIAL(info) << "finished run wizard";

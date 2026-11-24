@@ -20,6 +20,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/FilamentLoad.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
+    GUI/ZebuImportDialog.cpp
+    GUI/ZebuImportDialog.hpp
     GUI/AnimatedTexture.cpp
     GUI/AnimatedTexture.hpp
     GUI/AmsMappingPopup.cpp
@@ -809,6 +811,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/MoonrakerPrinterAgent.hpp
     Utils/Moonraker.cpp
     Utils/Moonraker.hpp
+    Utils/ZebuOrcaImport.cpp
+    Utils/ZebuOrcaImport.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp
