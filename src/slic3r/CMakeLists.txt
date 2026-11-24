@@ -22,6 +22,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.hpp
     GUI/ZebuImportDialog.cpp
     GUI/ZebuImportDialog.hpp
+    GUI/ZebuLivePanel.cpp
+    GUI/ZebuLivePanel.hpp
     GUI/AnimatedTexture.cpp
     GUI/AnimatedTexture.hpp
     GUI/AmsMappingPopup.cpp
@@ -813,6 +815,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/Moonraker.hpp
     Utils/ZebuOrcaImport.cpp
     Utils/ZebuOrcaImport.hpp
+    Utils/ZebuMoonraker.cpp
+    Utils/ZebuMoonraker.hpp
     Utils/BBLCloudServiceAgent.cpp
     Utils/BBLCloudServiceAgent.hpp
     Utils/BBLPrinterAgent.cpp

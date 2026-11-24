@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "ZebuLivePanel.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
@@ -3256,6 +3257,10 @@ Sidebar::Sidebar(Plater *parent)
         p->m_panel_printer_content->SetSizer(p->vsizer_printer);
         p->m_panel_printer_content->Layout();
         scrolled_sizer->Add(p->m_panel_printer_content, 0, wxEXPAND, 0);
+
+        // ZEBU: live camera / temperatures / progress of the selected printer, right under its selection.
+        if (wxGetApp().app_config->get("zebu_live_enabled") != "0")
+            scrolled_sizer->Add(new ZebuLivePanel(p->scrolled), 0, wxEXPAND | wxTOP, FromDIP(2));
     }
 
     {
