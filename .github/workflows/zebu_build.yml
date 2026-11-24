@@ -57,7 +57,7 @@ jobs:
           $env:Path = "${env:ProgramFiles(x86)}\NSIS;$env:Path"
           .\packaging\windows\build_installer.ps1 -BuildDir build -Config Release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ZEBU_Slicer_Windows
           path: |
@@ -104,7 +104,7 @@ jobs:
           for f in ZEBU_Slicer_Linux_V*.AppImage; do sha256sum "$f" > "$f.sha256"; done
           ls -la ZEBU_Slicer_Linux_V*
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ZEBU_Slicer_Linux
           path: |
