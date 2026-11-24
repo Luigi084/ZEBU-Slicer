@@ -51,7 +51,7 @@ bool read_json(const fs::path &file, json &out, std::string &error)
 {
     std::ifstream in(file, std::ios::binary);
     if (!in) {
-        error = "cannot open " + file.string();
+        error = "cannot open " + file.u8string();
         return false;
     }
     std::stringstream buf;
@@ -62,11 +62,11 @@ bool read_json(const fs::path &file, json &out, std::string &error)
     try {
         out = json::parse(text);
     } catch (const std::exception &e) {
-        error = "invalid JSON in " + file.string() + ": " + e.what();
+        error = "invalid JSON in " + file.u8string() + ": " + e.what();
         return false;
     }
     if (!out.is_object()) {
-        error = "not a JSON object: " + file.string();
+        error = "not a JSON object: " + file.u8string();
         return false;
     }
     return true;
@@ -179,10 +179,10 @@ void index_profile_root(const fs::path &root, Index &index, std::vector<std::str
             // Fall back to the folder name (<Vendor>/<machine|filament|process>/...).
             auto p = rel.begin();
             ++p;
-            if (name.empty() || p == rel.end() || !kind_from_string(p->string(), kind))
+            if (name.empty() || p == rel.end() || !kind_from_string(p->u8string(), kind))
                 continue;
         }
-        index.add(kind, name, Entry{kind, rel.begin()->string(), std::move(j)});
+        index.add(kind, name, Entry{kind, rel.begin()->u8string(), std::move(j)});
     }
 }
 
@@ -310,7 +310,7 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
     std::vector<Raw> raws;
     const fs::path user_root = orca_data_dir / "user";
     if (!fs::is_directory(user_root, ec)) {
-        scan.warnings.push_back("no user folder in " + orca_data_dir.string());
+        scan.warnings.push_back("no user folder in " + orca_data_dir.u8string());
         return scan;
     }
     std::set<std::string> seen; // the same preset may exist in several user folders (cloud + default)
@@ -332,7 +332,7 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
                 }
                 std::string name = get_str(j, "name");
                 if (name.empty())
-                    name = f.path().stem().string();
+                    name = f.path().stem().u8string();
                 if (!seen.insert(std::string(kind_folder(kind)) + "/" + name).second)
                     continue;
                 raws.push_back({kind, f.path(), std::move(j)});
@@ -344,7 +344,7 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
     //    then the extra folders (Orca install resources/profiles, ZEBU's own resources/profiles).
     Index index;
     for (const Raw &r : raws)
-        index.add(r.kind, get_str(r.j, "name").empty() ? r.file.stem().string() : get_str(r.j, "name"), Entry{r.kind, "", r.j});
+        index.add(r.kind, get_str(r.j, "name").empty() ? r.file.stem().u8string() : get_str(r.j, "name"), Entry{r.kind, "", r.j});
     index_profile_root(orca_data_dir / "system", index, scan.warnings);
     for (const fs::path &extra : extra_profile_dirs)
         index_profile_root(extra, index, scan.warnings);
@@ -356,7 +356,7 @@ OrcaScan scan_orca(const fs::path &orca_data_dir, const std::vector<fs::path> &e
         OrcaUserPreset p;
         p.kind = r.kind;
         p.file = r.file;
-        p.name = get_str(r.j, "name").empty() ? r.file.stem().string() : get_str(r.j, "name");
+        p.name = get_str(r.j, "name").empty() ? r.file.stem().u8string() : get_str(r.j, "name");
         json flat = json::object();
         const std::string parent = get_str(r.j, "inherits");
         std::string err;
@@ -404,30 +404,33 @@ ImportResult write_import(const OrcaScan &scan, const ImportPlan &plan, const fs
     auto write_one = [&](PresetKind kind, const std::string &name, const json &content) {
         const fs::path dir = zebu_user_dir / kind_folder(kind);
         fs::create_directories(dir, ec);
-        const fs::path file = dir / preset_file_name(name);
+        // u8path: the name is UTF-8. A plain std::string would be read in the Windows ANSI code page and
+        // "Précision" would become "PrÃ©cision" in the file name (the preset name shown by the app).
+        const fs::path file = dir / fs::u8path(preset_file_name(name));
         const std::string label = std::string(kind_folder(kind)) + "/" + name;
         if (fs::exists(file, ec) && !plan.overwrite) {
             result.skipped.push_back(label);
             return;
         }
         // Written next to the target first, then renamed, so a failure never leaves a truncated preset.
-        const fs::path tmp = file.string() + ".zebu-tmp";
+        fs::path tmp = file;
+        tmp += ".zebu-tmp";
         {
             std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
             if (!out) {
-                result.errors.push_back("cannot write " + file.string());
+                result.errors.push_back("cannot write " + file.u8string());
                 return;
             }
             out << content.dump(4) << '\n';
             if (!out) {
-                result.errors.push_back("cannot write " + file.string());
+                result.errors.push_back("cannot write " + file.u8string());
                 return;
             }
         }
         fs::rename(tmp, file, ec);
         if (ec) {
             fs::remove(tmp, ec);
-            result.errors.push_back("cannot write " + file.string() + ": " + ec.message());
+            result.errors.push_back("cannot write " + file.u8string() + ": " + ec.message());
             return;
         }
         // A stale .info (cloud sync state) from an earlier preset of the same name must not apply.

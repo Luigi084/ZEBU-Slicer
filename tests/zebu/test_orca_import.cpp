@@ -12,6 +12,7 @@ int main(int argc,char**argv){
   plan.filament_bindings["PETG G3D @G3D Pro 360"]={"G3D Pro 360"};
   plan.filament_bindings["ABS maison"]={"Raise K2Plus","G3D Pro 360"};
   plan.process_bindings["0.20 G3D"]={"G3D Pro 360"};
+  plan.filament_bindings["ABS Pr\xC3\xA9" "cision G3D"]={"G3D Pro 360"};
   auto r = write_import(scan, plan, argv[2]);
   for(auto&s:r.written) std::cout<<"written "<<s<<"\n";
   for(auto&s:r.errors) std::cout<<"error "<<s<<"\n";
