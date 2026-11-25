@@ -3584,7 +3584,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_enable_cooling_markers = true;
     this->apply_print_config(print.config());
     m_config.apply(print.default_object_config());
-    m_config.apply(print.default_region_config());
+    {
+        ZebuTiming::Scope zebu_timing("2b11 config apply");
+        m_config.apply(print.default_region_config());
+    }
 
     //m_volumetric_speed = DoExport::autospeed_volumetric_limit(print);
     print.throw_if_canceled();
@@ -6084,7 +6087,10 @@ std::string GCode::generate_object_brim(
         // perimeters, so it needs this instance's origin.  The caller does not set it
         // until later, and the plate brim path deliberately uses (0, 0) because its
         // geometry is already in plate coordinates.
-        m_config.apply(print.default_region_config());
+        {
+            ZebuTiming::Scope zebu_timing("2b11 config apply");
+            m_config.apply(print.default_region_config());
+        }
         m_config.apply(object.config(), true);
         // m_layer is not switched to this object until after brim emission, so name
         // the belt-floor owner explicitly or the classification borrows whichever
@@ -6309,7 +6315,10 @@ std::string GCode::emit_belt_brim_bands(const Print                     &print,
         if (! object.has_belt_brim() || static_cast<unsigned int>(object.belt_brim_filament() - 1) != extruder_id)
             continue;
         // Speeds, flow and retraction all read m_config.
-        m_config.apply(print.default_region_config());
+        {
+            ZebuTiming::Scope zebu_timing("2b11 config apply");
+            m_config.apply(print.default_region_config());
+        }
         m_config.apply(object.config(), true);
         // Apron bands have no Layer at all (m_layer is null here), so the belt
         // floor owner has to be named the same way the object brim names it.
@@ -6694,7 +6703,10 @@ LayerResult GCode::process_layer(
     unsigned int         first_extruder_id = layer_tools.extruders.front();
 
     // Initialize config with the 1st object to be printed at this layer.
-    m_config.apply(layer.object()->config(), true);
+    {
+        ZebuTiming::Scope zebu_timing("2b11 config apply");
+        m_config.apply(layer.object()->config(), true);
+    }
 
     // Check whether it is possible to apply the spiral vase logic for this layer.
     // Just a reminder: A spiral vase mode is allowed for a single object, single material print only.
@@ -7670,12 +7682,21 @@ LayerResult GCode::process_layer(
                 // To control print speed of the 1st object layer printed over raft interface.
                 bool object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&
                     instance_to_print.print_object.slicing_parameters().raft_layers() == layer_to_print.object_layer->id();
-                m_config.apply(print.default_region_config());
-                m_config.apply(instance_to_print.print_object.config(), true);
+                {
+                    ZebuTiming::Scope zebu_timing("2b11 config apply");
+                    m_config.apply(print.default_region_config());
+                }
+                {
+                    ZebuTiming::Scope zebu_timing("2b11 config apply");
+                    m_config.apply(instance_to_print.print_object.config(), true);
+                }
                 m_layer = layer_to_print.layer();
                 m_object_layer_over_raft = object_layer_over_raft;
                 if (m_config.reduce_crossing_wall)
-                    m_avoid_crossing_perimeters.init_layer(*m_layer);
+                    {
+                        ZebuTiming::Scope zebu_timing("2b9 avoid crossing: layer boundaries (init_layer)");
+                        m_avoid_crossing_perimeters.init_layer(*m_layer);
+                    }
 
                 if (this->config().gcode_label_objects) {
                     gcode += std::string("; printing object ") + instance_to_print.print_object.model_object()->name +
@@ -7904,12 +7925,21 @@ LayerResult GCode::process_layer(
 
                 bool object_layer_over_raft = layer_to_print.object_layer && layer_to_print.object_layer->id() > 0 &&
                     instance_to_print.print_object.slicing_parameters().raft_layers() == layer_to_print.object_layer->id();
-                m_config.apply(print.default_region_config());
-                m_config.apply(instance_to_print.print_object.config(), true);
+                {
+                    ZebuTiming::Scope zebu_timing("2b11 config apply");
+                    m_config.apply(print.default_region_config());
+                }
+                {
+                    ZebuTiming::Scope zebu_timing("2b11 config apply");
+                    m_config.apply(instance_to_print.print_object.config(), true);
+                }
                 m_layer = layer_to_print.layer();
                 m_object_layer_over_raft = object_layer_over_raft;
                 if (m_config.reduce_crossing_wall)
-                    m_avoid_crossing_perimeters.init_layer(*m_layer);
+                    {
+                        ZebuTiming::Scope zebu_timing("2b9 avoid crossing: layer boundaries (init_layer)");
+                        m_avoid_crossing_perimeters.init_layer(*m_layer);
+                    }
 
                 if (this->config().gcode_label_objects) {
                     gcode += std::string("; printing object ") + instance_to_print.print_object.model_object()->name +
@@ -8503,6 +8533,7 @@ std::string GCode::preamble()
 // called by GCode::process_layer()
 std::string GCode::change_layer(coordf_t print_z)
 {
+    ZebuTiming::Scope zebu_timing("2b8 change_layer");
     std::string gcode;
     if (m_layer_count > 0)
         // Increment a progress bar indicator.
@@ -8567,6 +8598,7 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
                                 const Point*                               start_point,
                                 const WipeInwardSupport*                   wipe_support)
 {
+    ZebuTiming::Scope zebu_timing("2b4 loops (extrude_loop, incl. seam)");
     // get a copy; don't modify the orientation of the original loop object otherwise
     // next copies (if any) would not detect the correct orientation
     ExtrusionLoop loop = loop_ref;
@@ -8590,7 +8622,10 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
     float seam_overhang = std::numeric_limits<float>::lowest();
     if (!m_config.spiral_mode && description == "perimeter") {
         assert(m_layer != nullptr);
-        m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang);
+        {
+            ZebuTiming::Scope zebu_timing("2b4a seam placement");
+            m_seam_placer.place_seam(m_layer, loop, last_pos, seam_overhang);
+        }
     } else
         loop.split_at(last_pos, false);
 
@@ -8960,10 +8995,14 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
 // Extrude perimeters: Decide where to put seams (hide or align seams).
 std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
+    ZebuTiming::Scope zebu_timing("2b1 walls (extrude_perimeters)");
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region)
         if (! region.perimeters.empty()) {
-            m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+            {
+                ZebuTiming::Scope zebu_timing("2b11 config apply");
+                m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+            }
             // BBS: for first layer, we always print wall firstly to get better bed adhesive force
             // This behaviour is same with cura
             const bool should_print = is_first_layer ? !is_infill_first
@@ -9019,6 +9058,7 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
 // Chain the paths hierarchically by a greedy algorithm to minimize a travel distance.
 std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool ironing)
 {
+    ZebuTiming::Scope zebu_timing("2b2 infill (extrude_infill)");
     std::string                                   gcode;
     std::vector<const ExtrusionEntity*>           extrusions;
     std::vector<std::unique_ptr<ExtrusionEntity>> reversed;
@@ -9031,9 +9071,15 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 if ((ee->role() == erIroning) == ironing)
                     extrusions.emplace_back(ee);
             if (! extrusions.empty()) {
-                m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+                {
+                    ZebuTiming::Scope zebu_timing("2b11 config apply");
+                    m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+                }
                 reversed.clear();
-                chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+                {
+                    ZebuTiming::Scope zebu_timing("2b10 chain and reorder");
+                    chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+                }
                 // The reversed copies are in chain order.
                 auto next_reversed = reversed.begin();
                 for (const ExtrusionEntity *fill : extrusions) {
@@ -9043,7 +9089,10 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                         // A reversed copy is owned here and can be moved from.
                         ExtrusionEntityCollection chained = own_copy ? std::move(static_cast<ExtrusionEntityCollection&>(*own_copy)) : ExtrusionEntityCollection(*eec);
                         if (!chained.no_sort)
-                            chain_and_reorder_extrusion_entities(chained.entities, m_last_pos.to_point());
+                            {
+                                ZebuTiming::Scope zebu_timing("2b10 chain and reorder");
+                                chain_and_reorder_extrusion_entities(chained.entities, m_last_pos.to_point());
+                            }
                         for (ExtrusionEntity *ee : chained.entities)
                             gcode += this->extrude_entity(*ee, extrusion_name);
                     } else
@@ -9056,6 +9105,7 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
 
 std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fills, const ExtrusionRole support_extrusion_role)
 {
+    ZebuTiming::Scope zebu_timing("2b3 supports (extrude_support)");
     static constexpr const char* support_label            = "support material";
     static constexpr const char* support_interface_label  = "support material interface";
     static constexpr const char* support_transition_label = "support transition";
@@ -9102,7 +9152,10 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         std::vector<std::unique_ptr<ExtrusionEntity>> reversed;
         //ORCA: Respect no_sort to preserve support base outline->fill order.
         if (!support_fills.no_sort)
-            chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+            {
+                ZebuTiming::Scope zebu_timing("2b10 chain and reorder");
+                chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point(), reversed);
+            }
 
         for (const ExtrusionEntity *ee : extrusions) {
             ExtrusionRole role = ee->role();
@@ -9272,6 +9325,7 @@ static bool overhang_fan_active(float overlap, int overhang_fan_threshold, Extru
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
 {
+    ZebuTiming::Scope zebu_timing("2b5 path to G-code (_extrude)");
     std::vector<std::vector<double>> uncut_line_lengths;
     const ExtrusionPaths pieces = this->belt_cut_at_band_edges(path, uncut_line_lengths);
     if (pieces.size() < 2)
@@ -9785,9 +9839,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                          FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
                      fully_unsupported_speed});
 
-                new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
+                {
+                    ZebuTiming::Scope zebu_timing("2b5a overhang speed estimation");
+                    new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
                                                                               fan_overlap_threshold);
+                }
         	}else{
                 ConfigOptionFloatsOrPercents dynamic_overhang_speeds(
                                                                      {FloatOrPercent{100, true},
@@ -9805,9 +9862,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                             FloatOrPercent{NOZZLE_CONFIG(overhang_4_4_speed).get_abs_value(ref_speed) * 100 / ref_speed, true},
                      FloatOrPercent{NOZZLE_CONFIG(bridge_speed) * 100 / ref_speed, true}});
 
-                new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
+                {
+                    ZebuTiming::Scope zebu_timing("2b5a overhang speed estimation");
+                    new_points = m_extrusion_quality_estimator.estimate_extrusion_quality(path, overhang_overlap_levels, dynamic_overhang_speeds,
                                                                               ref_speed, speed, NOZZLE_CONFIG(slowdown_for_curled_perimeters),
                                                                               fan_overlap_threshold);
+                }
             }
             if (!NOZZLE_CONFIG(enable_overhang_speed))
                 for (ProcessedPoint &point : new_points)
@@ -10481,6 +10541,7 @@ std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
 // This method accepts &point in print coordinates.
 std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string comment, double z/* = DBL_MAX*/)
 {
+    ZebuTiming::Scope zebu_timing("2b6 travels (travel_to)");
     const std::optional<GCodeProcessor::PositionState> start_gcode_position =
         !m_exclusion_volume_travel_avoidance.empty() && !m_last_pos_defined &&
         !m_writer.is_current_position_clear() && m_pending_start_gcode_position.has_value() ?
@@ -10618,7 +10679,10 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         && m_writer.is_current_position_clear())
         //BBS: don't generate detour travel paths when current position is unclea
     {
-        travel = m_avoid_crossing_perimeters.travel_to(*this, point, &could_be_wipe_disabled);
+        {
+            ZebuTiming::Scope zebu_timing("2b6a avoid crossing: travel planning");
+            travel = m_avoid_crossing_perimeters.travel_to(*this, point, &could_be_wipe_disabled);
+        }
         // check again whether the new travel path still needs a retraction
         needs_retraction = this->needs_retraction(travel, role, lift_type);
         //if (needs_retraction && m_layer_index > 1) exit(0);
@@ -10653,7 +10717,10 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 // If in the previous call of m_avoid_crossing_perimeters.travel_to was use_external_mp_once set to true restore this value for next call.
                 if (used_external_mp_once)
                     m_avoid_crossing_perimeters.use_external_mp_once();
-                travel = m_avoid_crossing_perimeters.travel_to(*this, point);
+                {
+                    ZebuTiming::Scope zebu_timing("2b6a avoid crossing: travel planning");
+                    travel = m_avoid_crossing_perimeters.travel_to(*this, point);
+                }
                 // If state of use_external_mp_once was changed reset it to right value.
                 if (used_external_mp_once)
                     m_avoid_crossing_perimeters.reset_once_modifiers();
@@ -10880,6 +10947,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
 
 std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType lift_type, bool apply_instantly, ExtrusionRole role)
 {
+    ZebuTiming::Scope zebu_timing("2b7 retract");
     std::string gcode;
 
     if (m_writer.filament() == nullptr)

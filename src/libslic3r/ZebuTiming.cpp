@@ -17,6 +17,7 @@ namespace Slic3r { namespace ZebuTiming {
 namespace {
 struct Counter
 {
+    const char *key = nullptr; // The literal passed by Scope: compared by address first, which is cheap.
     std::string name;
     double      seconds = 0.;
     long        calls   = 0;
@@ -30,12 +31,12 @@ void add(const char *name, double seconds)
 {
     std::lock_guard<std::mutex> lock(g_mutex);
     for (Counter &c : g_counters)
-        if (c.name == name) {
+        if (c.key == name || c.name == name) {
             c.seconds += seconds;
             ++c.calls;
             return;
         }
-    g_counters.push_back({name, seconds, 1});
+    g_counters.push_back({name, name, seconds, 1});
 }
 
 void reset()
