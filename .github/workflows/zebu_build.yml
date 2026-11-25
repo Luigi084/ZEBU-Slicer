@@ -28,20 +28,27 @@ concurrency:
 
 jobs:
   windows:
-    runs-on: windows-2022
+    runs-on: windows-latest
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v7
 
-      # Windows stays on MSVC + MSBuild for now. The clang-cl + Ninja build (needed for a compiler cache) failed
-      # in OpenSSL on this runner; it comes back once that is understood. Linux has the compiler cache.
+      # Windows builds with Visual Studio's clang-cl + Ninja (-l -x), on the runner image and CMake that
+      # OrcaSlicer's own release CI uses. clang-cl is both what Orca ships (ZEBU built with MSVC slices ~15 %
+      # slower) and what makes a compiler cache possible (MSBuild ignores it). The clang-cl of the
+      # windows-2022 image could not link OCCT against its newer MSVC STL (std::variant destructors).
+      # clang-cl dependencies live in deps/build-clang.
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"
+
       # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
       - name: Restore dependencies
         id: deps-cache
         uses: actions/cache/restore@v4
         with:
-          path: deps/build
-          key: zebu-deps-win-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
+          path: deps/build-clang
+          key: zebu-deps-win-clang-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
 
       - name: Install NSIS
         shell: pwsh
@@ -50,18 +57,62 @@ jobs:
       - name: Build dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         shell: cmd
-        run: build_win.bat -d
+        run: build_win.bat -d -l -x
 
       - name: Save dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps/build
+          path: deps/build-clang
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      - name: Install ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: zebu-win
+          max-size: 2G
+          restore: false
+          save: false
+          job-summary: ''
+
+      - name: Restore compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: zebu-ccache-win-
 
       - name: Build ZEBU Slicer
         shell: cmd
-        run: build_win.bat -s --build-dir build
+        run: |
+          ccache -z
+          build_win.bat -s -l -x --cache ccache --build-dir build
+
+      - name: Compiler cache statistics
+        if: always()
+        shell: bash
+        run: ccache -s || true
+
+      # A tag run only reads the branch cache: what it would save is visible to that tag alone.
+      - name: Save compiler cache
+        id: ccache-save
+        if: always() && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Drop older compiler cache entries
+        if: always() && steps.ccache-save.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-win- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
+          grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
+          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
 
       - name: Build installer
         shell: pwsh
