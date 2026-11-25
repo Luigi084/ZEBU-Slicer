@@ -1,3 +1,4 @@
+#include "../ZebuTiming.hpp"
 #include "../Layer.hpp"
 #include "../GCode.hpp"
 #include "../EdgeGrid.hpp"
@@ -693,7 +694,10 @@ static size_t avoid_perimeters_inner(
     }
 #endif /* AVOID_CROSSING_PERIMETERS_DEBUG_OUTPUT */
 
-    if (!intersections.empty()) result = simplify_travel(boundary, result);
+    if (!intersections.empty()) {
+        ZebuTiming::Scope zebu_timing("2b6d2 avoid: path simplification (simplify_travel)");
+        result = simplify_travel(boundary, result);
+    }
 
     auto simplified_result_polyline = to_polyline(result);
     (void) simplified_result_polyline;
@@ -1269,35 +1273,39 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     const ExPolygons               &lslices          = gcodegen.layer()->lslices;
     const std::vector<BoundingBox> &lslices_bboxes   = gcodegen.layer()->lslices_bboxes;
     bool                            is_support_layer = (dynamic_cast<const SupportLayer *>(gcodegen.layer()) != nullptr);
-    if (!use_external && (is_support_layer || (!m_lslices_offset.empty() && !any_expolygon_contains(m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel)))) {
+    if (!use_external && (is_support_layer || (!m_lslices_offset.empty() && ![&] { ZebuTiming::Scope zebu_timing("2b6b avoid: is the travel inside (any_expolygon_contains)"); return any_expolygon_contains(m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel); }()))) {
         // Initialize m_internal only when it is necessary.
         if (m_internal.boundaries.empty()) {
+            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
             init_boundary(&m_internal, to_polygons(get_boundary(*gcodegen.layer(), get_perimeter_spacing(*gcodegen.layer()))), {start, end});
         } else if (!(m_internal.bbox.contains(startf) && m_internal.bbox.contains(endf))) {
             // check if start and end are in bbox, if not, merge start and end points to bbox
             m_internal.clear();
+            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
             init_boundary(&m_internal, to_polygons(get_boundary(*gcodegen.layer(), get_perimeter_spacing(*gcodegen.layer()))), {start, end});
         }
 
         if (!m_internal.boundaries.empty()) {
-            travel_intersection_count = avoid_perimeters(m_internal, start, end, *gcodegen.layer(), result_pl);
+            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(m_internal, start, end, *gcodegen.layer(), result_pl); }();
             result_pl.points.front()  = start;
             result_pl.points.back()   = end;
         }
     } else if (use_external) {
         // Initialize m_external only when exist any external travel for the current layer.
         if (m_external.boundaries.empty()) {
+            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
             init_boundary(&m_external, get_boundary_external(*gcodegen.layer()), {start, end});
         } else if (!(m_external.bbox.contains(startf) && m_external.bbox.contains(endf))) {
             // check if start and end are in bbox
             m_external.clear();
+            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
             init_boundary(&m_external, get_boundary_external(*gcodegen.layer()), {start, end});
         }
         
         // Trim the travel line by the bounding box.
         if (!m_external.boundaries.empty()) 
         {
-            travel_intersection_count = avoid_perimeters(m_external, start, end, *gcodegen.layer(), result_pl);
+            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(m_external, start, end, *gcodegen.layer(), result_pl); }();
             result_pl.points.front()  = start;
             result_pl.points.back()   = end;
             
@@ -1330,7 +1338,7 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     } else if (max_detour_length_exceeded) {
         *could_be_wipe_disabled = false;
     } else
-        *could_be_wipe_disabled = !need_wipe(gcodegen, m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel, result_pl, travel_intersection_count);
+        *could_be_wipe_disabled = ![&] { ZebuTiming::Scope zebu_timing("2b6e avoid: need_wipe"); return need_wipe(gcodegen, m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel, result_pl, travel_intersection_count); }();
 
     return result_pl;
 }
