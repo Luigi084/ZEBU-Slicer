@@ -1274,41 +1274,54 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     const std::vector<BoundingBox> &lslices_bboxes   = gcodegen.layer()->lslices_bboxes;
     bool                            is_support_layer = (dynamic_cast<const SupportLayer *>(gcodegen.layer()) != nullptr);
     if (!use_external && (is_support_layer || (!m_lslices_offset.empty() && ![&] { ZebuTiming::Scope zebu_timing("2b6b avoid: is the travel inside (any_expolygon_contains)"); return any_expolygon_contains(m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel); }()))) {
-        // Initialize m_internal only when it is necessary.
-        if (m_internal.boundaries.empty()) {
+        // Initialize the internal boundary only when it is necessary.
+        if (m_internal_active == nullptr || m_internal_active->boundaries.empty() ||
+            !(m_internal_active->bbox.contains(startf) && m_internal_active->bbox.contains(endf))) {
+            // (Re)build it with start and end merged into its bounding box.
             ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
-            init_boundary(&m_internal, to_polygons(get_boundary(*gcodegen.layer(), get_perimeter_spacing(*gcodegen.layer()))), {start, end});
-        } else if (!(m_internal.bbox.contains(startf) && m_internal.bbox.contains(endf))) {
-            // check if start and end are in bbox, if not, merge start and end points to bbox
+            std::shared_ptr<const Prepared> prepared = this->find_prepared(*gcodegen.layer());
+            m_internal_hold.reset();
             m_internal.clear();
-            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
-            init_boundary(&m_internal, to_polygons(get_boundary(*gcodegen.layer(), get_perimeter_spacing(*gcodegen.layer()))), {start, end});
+            if (prepared && prepared->internal && prepared->internal_extents.contains(start) && prepared->internal_extents.contains(end)) {
+                // Merging points inside the extents leaves the bounding box, thus the grid, as prepared.
+                m_internal_hold   = prepared;
+                m_internal_active = prepared->internal.get();
+            } else {
+                init_boundary(&m_internal, prepared ? Polygons(prepared->internal_polygons) :
+                                  to_polygons(get_boundary(*gcodegen.layer(), get_perimeter_spacing(*gcodegen.layer()))), {start, end});
+                m_internal_active = &m_internal;
+            }
         }
 
-        if (!m_internal.boundaries.empty()) {
-            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(m_internal, start, end, *gcodegen.layer(), result_pl); }();
+        if (!m_internal_active->boundaries.empty()) {
+            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(*m_internal_active, start, end, *gcodegen.layer(), result_pl); }();
             result_pl.points.front()  = start;
             result_pl.points.back()   = end;
         }
     } else if (use_external) {
-        // Initialize m_external only when exist any external travel for the current layer.
-        if (m_external.boundaries.empty()) {
+        // Initialize the external boundary only when exist any external travel for the current layer.
+        if (m_external_active == nullptr || m_external_active->boundaries.empty() ||
+            !(m_external_active->bbox.contains(startf) && m_external_active->bbox.contains(endf))) {
             ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
-            init_boundary(&m_external, get_boundary_external(*gcodegen.layer()), {start, end});
-        } else if (!(m_external.bbox.contains(startf) && m_external.bbox.contains(endf))) {
-            // check if start and end are in bbox
+            std::shared_ptr<const Prepared> prepared = this->find_prepared(*gcodegen.layer());
+            m_external_hold.reset();
             m_external.clear();
-            ZebuTiming::Scope zebu_timing("2b6c avoid: boundary build (offsets + grid)");
-            init_boundary(&m_external, get_boundary_external(*gcodegen.layer()), {start, end});
+            if (prepared && prepared->external && prepared->external_extents.contains(start) && prepared->external_extents.contains(end)) {
+                m_external_hold   = prepared;
+                m_external_active = prepared->external.get();
+            } else {
+                init_boundary(&m_external, prepared ? Polygons(prepared->external_polygons) : get_boundary_external(*gcodegen.layer()), {start, end});
+                m_external_active = &m_external;
+            }
         }
-        
+
         // Trim the travel line by the bounding box.
-        if (!m_external.boundaries.empty()) 
+        if (!m_external_active->boundaries.empty())
         {
-            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(m_external, start, end, *gcodegen.layer(), result_pl); }();
+            travel_intersection_count = [&] { ZebuTiming::Scope zebu_timing("2b6d avoid: path search (avoid_perimeters)"); return avoid_perimeters(*m_external_active, start, end, *gcodegen.layer(), result_pl); }();
             result_pl.points.front()  = start;
             result_pl.points.back()   = end;
-            
+
         }
     }
 
@@ -1343,12 +1356,65 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     return result_pl;
 }
 
+// ZEBU: boundaries built ahead, in parallel (see prepare_layer() in the header).
+void AvoidCrossingPerimeters::prepare_layer(const Layer &layer)
+{
+    {
+        std::lock_guard<std::mutex> lock(m_prepared->mutex);
+        if (m_prepared->layers.count(&layer))
+            return;
+    }
+    auto prepared     = std::make_shared<Prepared>();
+    prepared->print_z = layer.print_z;
+    // The same calls as travel_to() makes, so the same polygons.
+    prepared->internal_polygons = to_polygons(get_boundary(layer, get_perimeter_spacing(layer)));
+    prepared->external_polygons = get_boundary_external(layer);
+    if (!prepared->internal_polygons.empty()) {
+        prepared->internal_extents = BoundingBox(get_extents(prepared->internal_polygons));
+        prepared->internal         = std::make_unique<Boundary>();
+        init_boundary(prepared->internal.get(), Polygons(prepared->internal_polygons), std::vector<Point>());
+    }
+    if (!prepared->external_polygons.empty()) {
+        prepared->external_extents = BoundingBox(get_extents(prepared->external_polygons));
+        prepared->external         = std::make_unique<Boundary>();
+        init_boundary(prepared->external.get(), Polygons(prepared->external_polygons), std::vector<Point>());
+    }
+    std::lock_guard<std::mutex> lock(m_prepared->mutex);
+    m_prepared->layers.emplace(&layer, std::move(prepared));
+}
+
+void AvoidCrossingPerimeters::clear_prepared()
+{
+    std::lock_guard<std::mutex> lock(m_prepared->mutex);
+    m_prepared->layers.clear();
+}
+
+std::shared_ptr<const AvoidCrossingPerimeters::Prepared> AvoidCrossingPerimeters::find_prepared(const Layer &layer) const
+{
+    std::lock_guard<std::mutex> lock(m_prepared->mutex);
+    auto it = m_prepared->layers.find(&layer);
+    return it == m_prepared->layers.end() ? nullptr : it->second;
+}
+
 // ************************************* AvoidCrossingPerimeters::init_layer() *****************************************
 
 void AvoidCrossingPerimeters::init_layer(const Layer &layer)
 {
     m_internal.clear();
     m_external.clear();
+    m_internal_active = nullptr;
+    m_external_active = nullptr;
+    m_internal_hold.reset();
+    m_external_hold.reset();
+    {
+        // Prepared boundaries of the layers below are no longer needed (layers are generated bottom up).
+        std::lock_guard<std::mutex> lock(m_prepared->mutex);
+        for (auto it = m_prepared->layers.begin(); it != m_prepared->layers.end();)
+            if (it->second->print_z < layer.print_z - EPSILON)
+                it = m_prepared->layers.erase(it);
+            else
+                ++it;
+    }
 
     m_lslices_offset.clear();
     m_lslices_offset_bboxes.clear();

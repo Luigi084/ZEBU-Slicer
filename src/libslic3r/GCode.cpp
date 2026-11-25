@@ -5154,8 +5154,9 @@ std::vector<PrecomputedOverhangLayer> precompute_overhang_layers(const std::vect
 }
 
 // Hands out the index of each layer to process_layers(), then computes the layers' overhang data in parallel.
-template<typename LayersAt>
-static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bool nop_layer, bool overhang_fan, LayersAt layers_at)
+// ZEBU: prepare(layers) runs there too, to build the travel boundaries of the layers ahead (in parallel).
+template<typename LayersAt, typename Prepare>
+static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bool nop_layer, bool overhang_fan, LayersAt layers_at, Prepare prepare)
 {
     return tbb::make_filter<void, PrecomputedLayer>(slic3r_tbb_filtermode::serial_in_order,
                [&next_index, layer_count, nop_layer](tbb::flow_control &fc) -> PrecomputedLayer {
@@ -5169,12 +5170,32 @@ static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bo
                    return {};
                }) &
            tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
-               [layers_at, overhang_fan](PrecomputedLayer layer) -> PrecomputedLayer {
-                   ZebuTiming::Scope zebu_timing("2b0 overhang precompute (parallel, summed)");
-                   if (layer.index != size_t(-1))
-                       layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan);
+               [layers_at, overhang_fan, prepare](PrecomputedLayer layer) -> PrecomputedLayer {
+                   if (layer.index != size_t(-1)) {
+                       {
+                           ZebuTiming::Scope zebu_timing("2b0 overhang precompute (parallel, summed)");
+                           layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan);
+                       }
+                       prepare(layers_at(layer.index));
+                   }
                    return layer;
                });
+}
+
+// ZEBU: builds the avoid-crossing boundaries of the given layers ahead of the serial generator, if that option is on.
+static auto travel_boundaries_preparer(AvoidCrossingPerimeters &avoid_crossing_perimeters, bool enabled)
+{
+    return [&avoid_crossing_perimeters, enabled](const std::vector<GCode::LayerToPrint> &layers) {
+        if (!enabled)
+            return;
+        ZebuTiming::Scope zebu_timing("2b0a travel boundaries prepared ahead (parallel, summed)");
+        for (const GCode::LayerToPrint &layer : layers) {
+            if (layer.object_layer != nullptr)
+                avoid_crossing_perimeters.prepare_layer(*layer.object_layer);
+            if (layer.support_layer != nullptr)
+                avoid_crossing_perimeters.prepare_layer(*layer.support_layer);
+        }
+    };
 }
 
 // Whether the overhang fan can switch on for any filament.
@@ -5197,7 +5218,8 @@ void GCode::process_layers(
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
-        [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; });
+        [&layers_to_print](size_t index) -> const std::vector<LayerToPrint> & { return layers_to_print[index].second; },
+        travel_boundaries_preparer(m_avoid_crossing_perimeters, print.config().reduce_crossing_wall.value));
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &print_object_instances_ordering, &layers_to_print](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
@@ -5289,6 +5311,8 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
+    // So do the prepared travel boundaries.
+    m_avoid_crossing_perimeters.clear_prepared();
 
 }
 
@@ -5308,7 +5332,8 @@ void GCode::process_layers(
     size_t layer_to_print_idx = 0;
     const auto source = precomputed_layers_source(layer_to_print_idx, layers_to_print.size(), m_pressure_equalizer != nullptr,
         overhang_fan_enabled(print.config(), m_enable_cooling_markers),
-        [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; });
+        [&layers_to_print](size_t index) { return std::vector<LayerToPrint>{layers_to_print[index]}; },
+        travel_boundaries_preparer(m_avoid_crossing_perimeters, print.config().reduce_crossing_wall.value));
     const auto generator = tbb::make_filter<PrecomputedLayer, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [this, &print, &tool_ordering, &layers_to_print, single_object_idx, prime_extruder](PrecomputedLayer precomputed) -> LayerResult {
             if (precomputed.index == size_t(-1))
@@ -5389,6 +5414,8 @@ void GCode::process_layers(
     	tbb::parallel_pipeline(12, source & generator & cooling & fan_mover & pa_processor_filter & output);
     // The estimator's precomputed data points into this print's layers.
     m_extrusion_quality_estimator.set_precomputed_layers({});
+    // So do the prepared travel boundaries.
+    m_avoid_crossing_perimeters.clear_prepared();
 }
 
 std::string GCode::placeholder_parser_process(const std::string &name, const std::string &templ, unsigned int current_filament_id, const DynamicConfig *config_override)

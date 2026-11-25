@@ -7,6 +7,9 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include <vector>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
 #include "libslic3r/MultiMaterialSegmentation.hpp"
 
 namespace Slic3r {
@@ -37,6 +40,13 @@ public:
     }
 
     Polyline    travel_to(const GCode& gcodegen, const Point& point, bool* could_be_wipe_disabled);
+
+    // ZEBU: a layer's boundaries depend on that layer only, so prepare_layer() builds them ahead of the serial
+    // G-code generation, in parallel (it is thread-safe). travel_to() then uses them instead of building them.
+    // The G-code is identical: same polygons, and the same grid whenever the travel stays within their extents
+    // (otherwise travel_to() builds the grid as before, from the prepared polygons).
+    void        prepare_layer(const Layer &layer);
+    void        clear_prepared();
 
     struct Boundary {
         // Collection of boundaries used for detection of crossing perimeters for travels
@@ -72,6 +82,28 @@ private:
     Boundary m_internal;
     // Store all needed data for travels outside object
     Boundary m_external;
+
+    // ZEBU: boundaries prepared by prepare_layer(), per layer.
+    struct Prepared {
+        double                    print_z { 0. };
+        Polygons                  internal_polygons;
+        BoundingBox               internal_extents;
+        std::unique_ptr<Boundary> internal; // Built without merge points; null if there are no polygons.
+        Polygons                  external_polygons;
+        BoundingBox               external_extents;
+        std::unique_ptr<Boundary> external;
+    };
+    struct PreparedStore {
+        std::mutex                                                     mutex;
+        std::unordered_map<const Layer *, std::shared_ptr<const Prepared>> layers;
+    };
+    std::shared_ptr<PreparedStore>  m_prepared { std::make_shared<PreparedStore>() };
+    std::shared_ptr<const Prepared> find_prepared(const Layer &layer) const;
+    // The boundaries travel_to() works with: m_internal / m_external, or a prepared one kept alive by *_hold.
+    const Boundary                 *m_internal_active { nullptr };
+    const Boundary                 *m_external_active { nullptr };
+    std::shared_ptr<const Prepared> m_internal_hold;
+    std::shared_ptr<const Prepared> m_external_hold;
 };
 
 } // namespace Slic3r
