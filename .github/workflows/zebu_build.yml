@@ -45,7 +45,7 @@ jobs:
       # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
       - name: Restore dependencies
         id: deps-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: deps/build-clang
           key: zebu-deps-win-clang-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
@@ -61,7 +61,7 @@ jobs:
 
       - name: Save dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: deps/build-clang
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
@@ -76,7 +76,7 @@ jobs:
           job-summary: ''
 
       - name: Restore compiler cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
@@ -97,7 +97,7 @@ jobs:
       - name: Save compiler cache
         id: ccache-save
         if: always() && !startsWith(github.ref, 'refs/tags/')
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
@@ -139,7 +139,7 @@ jobs:
       # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
       - name: Restore dependencies
         id: deps-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: deps/build
           key: zebu-deps-linux-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
@@ -153,7 +153,7 @@ jobs:
 
       - name: Save dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: deps/build
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
@@ -163,7 +163,7 @@ jobs:
         run: sudo apt-get install -y ccache
 
       - name: Restore compiler cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: zebu-ccache-linux-${{ github.run_id }}-${{ github.run_attempt }}
@@ -182,7 +182,7 @@ jobs:
       - name: Save compiler cache
         id: ccache-save
         if: always() && !startsWith(github.ref, 'refs/tags/')
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/.ccache
           key: zebu-ccache-linux-${{ github.run_id }}-${{ github.run_attempt }}
