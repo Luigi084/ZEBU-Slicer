@@ -2837,6 +2837,38 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(120));
 
+    // ZEBU: curved (non-planar) top surfaces, printer side.
+    def = this->add("zebu_head_model", coString);
+    def->label = L("Toolhead model");
+    def->tooltip = L("Model of the toolhead's underside (a file of resources/zebu/heads, or the full path of one), used to check "
+                     "that curved top surfaces can be printed without the toolhead touching the print. "
+                     "Empty: curved top surfaces are not available on this printer.");
+    def->gui_type = ConfigOptionDef::GUIType::select_open;
+    def->enum_values = {"", "g3d-pro-360-stealthburner-eddy", "raise-k2plus-eva-sb", "zortrax-m200k"};
+    def->mode = comAdvanced;
+    def->cli = ConfigOptionDef::nocli;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("zebu_curved_top_max_angle", coFloat);
+    def->label = L("Maximum slope");
+    def->tooltip = L("Steepest top surface printed curved. The nozzle's cone limits it: about 18° with common nozzles, "
+                     "so 15° keeps a safety margin.");
+    def->sidetext = u8"°";
+    def->min = 1;
+    def->max = 30;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(15));
+
+    def = this->add("zebu_curved_top_margin", coFloat);
+    def->label = L("Toolhead margin");
+    def->tooltip = L("Gap kept between the toolhead (ducts, probe, heater block) and the print while curved top surfaces "
+                     "are printed.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 3;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.4));
+
     def = this->add("extruder_clearance_radius", coFloat);
     def->label = L("Radius");
     def->tooltip = L("Clearance radius around extruder: used for collision avoidance in by-object printing.");

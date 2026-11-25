@@ -2910,6 +2910,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
                 camera.get_view_matrix(), camera.get_projection_matrix());
         _render_sla_slices();
         _render_selection();
+        _render_zebu_overlay();
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
         m_frame_profiler.mark("transparent");
@@ -11978,6 +11979,51 @@ void GLCanvas3D::_render_camera_target()
     }
 }
 #endif // ENABLE_SHOW_CAMERA_TARGET
+
+void GLCanvas3D::zebu_set_overlay(const std::vector<std::pair<indexed_triangle_set, ColorRGBA>> &parts)
+{
+    m_zebu_overlay.clear();
+    m_zebu_overlay.resize(parts.size());
+    for (size_t i = 0; i < parts.size(); ++i) {
+        m_zebu_overlay[i].init_from(parts[i].first);
+        m_zebu_overlay[i].set_color(parts[i].second);
+    }
+    m_dirty = true;
+    request_extra_frame();
+}
+
+void GLCanvas3D::zebu_clear_overlay()
+{
+    if (m_zebu_overlay.empty())
+        return;
+    m_zebu_overlay.clear();
+    m_dirty = true;
+    request_extra_frame();
+}
+
+void GLCanvas3D::_render_zebu_overlay()
+{
+    if (m_zebu_overlay.empty())
+        return;
+    GLShaderProgram *shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+    const Camera &camera = wxGetApp().plater()->get_camera();
+    shader->start_using();
+    shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+    shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    // Drawn on the object's own faces: pulled toward the camera so they win the depth test.
+    glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glPolygonOffset(-2.f, -2.f));
+    for (GLModel &model : m_zebu_overlay)
+        model.render();
+    glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glDisable(GL_BLEND));
+    shader->stop_using();
+}
 
 void GLCanvas3D::_render_sla_slices()
 {

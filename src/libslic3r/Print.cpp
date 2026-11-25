@@ -305,6 +305,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "plugins",
         "extruder_clearance_height_to_rod",
         "extruder_clearance_height_to_lid",
+        // ZEBU: curved top surfaces (only analysed for now).
+        "zebu_head_model",
+        "zebu_curved_top_max_angle",
+        "zebu_curved_top_margin",
         "extruder_clearance_radius",
         "nozzle_height",
         "extruder_colour",

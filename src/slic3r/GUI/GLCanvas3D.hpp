@@ -1003,6 +1003,10 @@ public:
     unsigned int get_volumes_count() const { return (unsigned int)m_volumes.volumes.size(); }
     const GLVolumeCollection& get_volumes() const { return m_volumes; }
     void reset_volumes();
+
+    // ZEBU: coloured triangle sets drawn over the objects in the 3D view (curved top surfaces analysis).
+    void zebu_set_overlay(const std::vector<std::pair<indexed_triangle_set, ColorRGBA>> &parts);
+    void zebu_clear_overlay();
     ModelInstanceEPrintVolumeState check_volumes_outside_state(ObjectFilamentResults* object_results = nullptr) const;
     void check_volumes_outside_state(GLVolumeCollection& volumes) const { check_volumes_outside_state(volumes, nullptr, false); }
     bool is_all_plates_selected() { return m_sel_plate_toolbar.m_all_plates_stats_item && m_sel_plate_toolbar.m_all_plates_stats_item->selected; }
@@ -1616,6 +1620,8 @@ private:
     void _render_camera_target();
 #endif // ENABLE_SHOW_CAMERA_TARGET
     void _render_sla_slices();
+    void _render_zebu_overlay();
+    std::vector<GLModel> m_zebu_overlay;
     void _render_selection_sidebar_hints() { m_selection.render_sidebar_hints(m_sidebar_field, m_gizmos.get_uniform_scaling()); }
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);

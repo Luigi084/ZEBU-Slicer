@@ -49,6 +49,7 @@
 #include <boost/filesystem/operations.hpp>
 #include "slic3r/GUI/calib_dlg.hpp"
 #include "slic3r/GUI/ZebuImportDialog.hpp"
+#include "slic3r/GUI/ZebuCurvedTopsDialog.hpp"
 #include "slic3r/GUI/ParamsPanel.hpp"
 #include "slic3r/GUI/UnsavedChangesDialog.hpp"
 #include "slic3r/GUI/Widgets/SideButton.hpp"
@@ -3853,6 +3854,14 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     m_menubar->Append(calib_menu,wxString::Format("&%s", _L("Calibration")));
+
+    // ZEBU
+    auto zebu_menu = new wxMenu();
+    append_menu_item(zebu_menu, wxID_ANY, _L("Curved top surfaces analysis") + dots,
+        _L("Check which top surfaces of the selected object could be printed curved with this printer's toolhead"),
+        [this](wxCommandEvent&) { zebu_show_curved_tops_analysis(this); }, "", nullptr,
+        [this]() { return m_plater != nullptr && !m_plater->model().objects.empty(); }, this);
+    m_menubar->Append(zebu_menu, "&ZEBU");
     if (helpMenu)
         m_menubar->Append(helpMenu, wxString::Format("&%s", _L("Help")));
     SetMenuBar(m_menubar);

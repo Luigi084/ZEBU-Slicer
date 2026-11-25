@@ -38241,3 +38241,78 @@ msgstr "Rien : « %s » démarre sans presets, « %s » garde les siens"
 
 msgid "\"%s\" was kept because the printer preset \"%s\" is based on it."
 msgstr "« %s » a été conservée car le preset d'imprimante « %s » est basé dessus."
+
+msgid "Toolhead model"
+msgstr "Modèle de tête"
+
+msgid "Model of the toolhead's underside (a file of resources/zebu/heads, or the full path of one), used to check that curved top surfaces can be printed without the toolhead touching the print. Empty: curved top surfaces are not available on this printer."
+msgstr "Modèle du dessous de la tête (un fichier de resources/zebu/heads, ou son chemin complet), utilisé pour vérifier que les dessus courbes peuvent être imprimés sans que la tête touche la pièce. Vide : pas de dessus courbes sur cette imprimante."
+
+msgid "Maximum slope"
+msgstr "Pente maximale"
+
+msgid "Steepest top surface printed curved. The nozzle's cone limits it: about 18° with common nozzles, so 15° keeps a safety margin."
+msgstr "Pente la plus forte imprimée en courbe. Le cône de la buse la limite : environ 18° avec les buses courantes, 15° garde donc une marge de sécurité."
+
+msgid "Toolhead margin"
+msgstr "Marge de la tête"
+
+msgid "Gap kept between the toolhead (ducts, probe, heater block) and the print while curved top surfaces are printed."
+msgstr "Écart gardé entre la tête (conduits, palpeur, bloc de chauffe) et la pièce pendant l'impression des dessus courbes."
+
+msgid "Curved top surfaces (ZEBU)"
+msgstr "Dessus courbes (ZEBU)"
+
+msgid "Curved top surfaces analysis"
+msgstr "Analyse des dessus courbes"
+
+msgid "Check which top surfaces of the selected object could be printed curved with this printer's toolhead"
+msgstr "Vérifie quels dessus de l'objet sélectionné pourraient être imprimés courbes avec la tête de cette imprimante"
+
+msgid "Surface"
+msgstr "Surface"
+
+msgid "Area"
+msgstr "Aire"
+
+msgid "Max slope"
+msgstr "Pente max."
+
+msgid "Spare gap"
+msgstr "Marge restante"
+
+msgid "Analyse again"
+msgstr "Analyser à nouveau"
+
+msgid "Select one object (or one of its instances) on the plate, then click \"Analyse again\"."
+msgstr "Sélectionnez un objet (ou une de ses instances) sur le plateau, puis cliquez sur « Analyser à nouveau »."
+
+msgid "This printer has no toolhead model. Choose one in the printer settings, section \"Curved top surfaces (ZEBU)\"."
+msgstr "Cette imprimante n'a pas de modèle de tête. Choisissez-en un dans les paramètres de l'imprimante, section « Dessus courbes (ZEBU) »."
+
+msgid "The toolhead model \"%s\" cannot be read: %s"
+msgstr "Le modèle de tête « %s » ne peut pas être lu : %s"
+
+msgid "Object \"%s\" — toolhead: %s\nMaximum slope %.0f°, margin %.2f mm, %d curved layers of %.2f mm."
+msgstr "Objet « %s » — tête : %s\nPente maximale %.0f°, marge %.2f mm, %d couches courbes de %.2f mm."
+
+msgid "plenty"
+msgstr "largement"
+
+msgid "Printable curved"
+msgstr "Imprimable en courbe"
+
+msgid "The toolhead would touch"
+msgstr "La tête toucherait"
+
+msgid "No top surface of this object is gentle enough to be printed curved."
+msgstr "Aucun dessus de cet objet n'est assez doux pour être imprimé en courbe."
+
+msgid "%d of %d surfaces can be printed curved (green in the 3D view; orange: the toolhead would touch). Nothing is printed curved yet: this is an analysis."
+msgstr "%d surface(s) sur %d peuvent être imprimées en courbe (en vert dans la vue 3D ; en orange : la tête toucherait). Rien n'est encore imprimé en courbe : c'est une analyse."
+
+msgid "Passing"
+msgstr "Réussite"
+
+msgid "For this printer, probably: %s"
+msgstr "Pour cette imprimante, probablement : %s"

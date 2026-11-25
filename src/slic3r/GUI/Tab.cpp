@@ -5680,6 +5680,12 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("extruder_clearance_height_to_rod", "printer_basic_information_extruder_clearance#height-to-rod");
         optgroup->append_single_option_line("extruder_clearance_height_to_lid", "printer_basic_information_extruder_clearance#height-to-lid");
 
+        // ZEBU
+        optgroup = page->new_optgroup(L("Curved top surfaces (ZEBU)"), "param_extruder_clearance");
+        optgroup->append_single_option_line("zebu_head_model");
+        optgroup->append_single_option_line("zebu_curved_top_max_angle");
+        optgroup->append_single_option_line("zebu_curved_top_margin");
+
         optgroup = page->new_optgroup(L("Adaptive bed mesh"), "param_adaptive_mesh");
         optgroup->append_single_option_line("bed_mesh_min", "printer_basic_information_adaptive_bed_mesh#bed-mesh");
         optgroup->append_single_option_line("bed_mesh_max", "printer_basic_information_adaptive_bed_mesh#bed-mesh");
