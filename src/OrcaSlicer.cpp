@@ -113,6 +113,7 @@
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/SL1.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/ZebuTiming.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/BlacklistedLibraryCheck.hpp"
@@ -1217,6 +1218,8 @@ int CLI::run(int argc, char **argv)
     set_current_thread_name("orcaslicer_main");
     // Save the thread ID of the main thread.
     save_main_thread_id();
+    // ZEBU: optional limit of the worker threads, for scaling measurements (ZEBU_MAX_THREADS=<n>).
+    Slic3r::ZebuTiming::apply_thread_limit_from_env();
 
 #ifdef __WXGTK__
     // ------------------------------------------------------------------

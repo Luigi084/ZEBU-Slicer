@@ -544,6 +544,8 @@ set(lisbslic3r_sources
     TextureBake/TextureBakeMesh.hpp
     Thread.cpp
     Thread.hpp
+    ZebuTiming.cpp
+    ZebuTiming.hpp
     Time.cpp
     Time.hpp
     Timer.cpp

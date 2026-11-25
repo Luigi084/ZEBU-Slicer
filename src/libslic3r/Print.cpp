@@ -4,6 +4,7 @@
 #include <Windows.h>
 #endif
 
+#include "ZebuTiming.hpp"
 #include "PrintBase.hpp"
 #include <utility>
 #include <string>
@@ -3299,6 +3300,9 @@ std::map<ObjectID, unsigned int> getObjectExtruderMap(const Print& print) {
 // Slicing process, running at a background thread.
 void Print::process(long long *time_cost_with_cache, bool use_cache)
 {
+    // ZEBU: stage timings of this slicing and of the G-code export that follows (reported by GCode::do_export).
+    ZebuTiming::reset();
+    ZebuTiming::Scope zebu_timing("1 slicing total (Print::process)");
     long long start_time = 0, end_time = 0;
     if (time_cost_with_cache)
         *time_cost_with_cache = 0;

@@ -1,3 +1,4 @@
+#include "ZebuTiming.hpp"
 #include "ArcFitter.hpp"
 #include <tuple>
 #include "BoundingBox.hpp"
@@ -2861,6 +2862,7 @@ static void set_mass_locator(GCodeProcessor &processor, const Print &print)
 
 void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb)
 {
+    const auto zebu_export_start = std::chrono::steady_clock::now();
     PROFILE_CLEAR();
 
     // BBS
@@ -2950,7 +2952,10 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     }
 
     try {
-        this->_do_export(*print, file, thumbnail_cb);
+        {
+            ZebuTiming::Scope zebu_timing("2a G-code generation (_do_export)");
+            this->_do_export(*print, file, thumbnail_cb);
+        }
         file.flush();
         if (file.is_error()) {
             file.close();
@@ -3048,7 +3053,10 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     // single-nozzle prints, where the injector is gated off anyway (enable_pre_heating false).
     m_processor.result().nozzle_group_result = m_print->get_layered_nozzle_group_result();
 
-    m_processor.finalize(true);
+    {
+        ZebuTiming::Scope zebu_timing("2h processor finalize (times, M73, post-processing)");
+        m_processor.finalize(true);
+    }
     if (m_processor.get_result().exclusion_volume_path_conflict) {
         const int extruder_id = m_processor.get_result().exclusion_volume_conflict_extruder_id;
         std::string warning = extruder_id >= 0 ?
@@ -3115,6 +3123,9 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
 
     BOOST_LOG_TRIVIAL(info) << "Exporting G-code finished" << log_memory_info();
     print->set_done(psGCodeExport);
+    ZebuTiming::add("2 export total (GCode::do_export)",
+                    std::chrono::duration<double>(std::chrono::steady_clock::now() - zebu_export_start).count());
+    ZebuTiming::report(std::string("G-code export: ") + path);
 
     {
         LifecycleEventContext ctx;
@@ -5156,6 +5167,7 @@ static auto precomputed_layers_source(size_t &next_index, size_t layer_count, bo
                }) &
            tbb::make_filter<PrecomputedLayer, PrecomputedLayer>(slic3r_tbb_filtermode::parallel,
                [layers_at, overhang_fan](PrecomputedLayer layer) -> PrecomputedLayer {
+                   ZebuTiming::Scope zebu_timing("2b0 overhang precompute (parallel, summed)");
                    if (layer.index != size_t(-1))
                        layer.overhang_layers = precompute_overhang_layers(layers_at(layer.index), overhang_fan);
                    return layer;
@@ -5201,6 +5213,7 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            ZebuTiming::Scope zebu_timing("2b layer G-code generator (process_layer)");
             return this->process_layer(print, layer.second, layer_tools, &layer == &layers_to_print.back(), &print_object_instances_ordering, tool_ordering.get_most_used_extruder(), size_t(-1));
         });
     if (m_spiral_vase) {
@@ -5219,26 +5232,30 @@ void GCode::process_layers(
         });
     const auto pressure_equalizer = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [pressure_equalizer = this->m_pressure_equalizer.get()](LayerResult in) -> LayerResult {
+            ZebuTiming::Scope zebu_timing("2f pressure equalizer");
             return pressure_equalizer->process_layer(std::move(in));
         });
     const auto cooling = tbb::make_filter<LayerResult, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&cooling_buffer = *this->m_cooling_buffer.get()](LayerResult in) -> std::string {
+            ZebuTiming::Scope zebu_timing("2c cooling buffer");
         	if (in.nop_layer_result)
                 return in.gcode;
             return cooling_buffer.process_layer(std::move(in.gcode), in.layer_id, in.cooling_buffer_flush);
         });
     const auto pa_processor_filter = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
             [&pa_processor = *this->m_pa_processor](std::string in) -> std::string {
+            ZebuTiming::Scope zebu_timing("2e pressure advance processor");
                 return pa_processor.process_layer(std::move(in));
             }
         );
     
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
-        [&output_stream](std::string s) { output_stream.write(s); }
+        [&output_stream](std::string s) { ZebuTiming::Scope zebu_timing("2g output (file + G-code processor)"); output_stream.write(s); }
     );
 
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
             [&fan_mover = this->m_fan_mover, &config = this->config(), &writer = this->m_writer](std::string in)->std::string {
+            ZebuTiming::Scope zebu_timing("2d fan mover");
 
         CNumericLocalesSetter locales_setter;
 
@@ -5258,6 +5275,7 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
+    ZebuTiming::Scope zebu_timing_pipeline("2a1 layer pipeline (wall time)");
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
@@ -5298,6 +5316,7 @@ void GCode::process_layers(
             check_placeholder_parser_failed();
             print.throw_if_canceled();
             m_extrusion_quality_estimator.set_precomputed_layers(std::move(precomputed.overhang_layers));
+            ZebuTiming::Scope zebu_timing("2b layer G-code generator (process_layer)");
             return this->process_layer(print, { std::move(layer) }, tool_ordering.tools_for_layer(layer.print_z()), &layer == &layers_to_print.back(), nullptr, tool_ordering.get_most_used_extruder(), single_object_idx, prime_extruder);
         });
     if (m_spiral_vase) {
@@ -5315,26 +5334,30 @@ void GCode::process_layers(
         });
     const auto pressure_equalizer = tbb::make_filter<LayerResult, LayerResult>(slic3r_tbb_filtermode::serial_in_order,
         [pressure_equalizer = this->m_pressure_equalizer.get()](LayerResult in) -> LayerResult {
+            ZebuTiming::Scope zebu_timing("2f pressure equalizer");
              return pressure_equalizer->process_layer(std::move(in));
         });
     const auto cooling = tbb::make_filter<LayerResult, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&cooling_buffer = *this->m_cooling_buffer.get()](LayerResult in)->std::string {
+            ZebuTiming::Scope zebu_timing("2c cooling buffer");
             if (in.nop_layer_result)
                 return in.gcode;
             return cooling_buffer.process_layer(std::move(in.gcode), in.layer_id, in.cooling_buffer_flush);
         });
     const auto pa_processor_filter = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&pa_processor = *this->m_pa_processor](std::string in) -> std::string {
+            ZebuTiming::Scope zebu_timing("2e pressure advance processor");
             return pa_processor.process_layer(std::move(in));
         }
     );
     
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
-        [&output_stream](std::string s) { output_stream.write(s); }
+        [&output_stream](std::string s) { ZebuTiming::Scope zebu_timing("2g output (file + G-code processor)"); output_stream.write(s); }
     );
 
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
         [&fan_mover = this->m_fan_mover, &config = this->config(), &writer = this->m_writer](std::string in)->std::string {
+            ZebuTiming::Scope zebu_timing("2d fan mover");
 
         if (config.fan_speedup_time.value != 0 || config.fan_kickstart.value > 0) {
             if (fan_mover.get() == nullptr)
@@ -5352,6 +5375,7 @@ void GCode::process_layers(
     });
 
     // The pipeline elements are joined using const references, thus no copying is performed.
+    ZebuTiming::Scope zebu_timing_pipeline("2a1 layer pipeline (wall time)");
     if (m_spiral_vase && m_pressure_equalizer)
         tbb::parallel_pipeline(12, source & generator & spiral_mode & pressure_equalizer & cooling & fan_mover & output);
     else if (m_spiral_vase)
@@ -9138,6 +9162,7 @@ void GCode::GCodeOutputStream::write(const char *what)
         // writes string to file
         fwrite(gcode, 1, ::strlen(gcode), this->f);
         //FIXME don't allocate a string, maybe process a batch of lines?
+        ZebuTiming::Scope zebu_timing("2g1 G-code processor (parsing while writing)");
         m_processor.process_buffer(std::string(gcode));
     }
 }

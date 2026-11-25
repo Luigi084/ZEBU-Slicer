@@ -1,6 +1,7 @@
 #include "ExPolygon.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
+#include "ZebuTiming.hpp"
 #include "Line.hpp"
 #include "Flow.hpp"
 #include "Model.hpp"
@@ -519,6 +520,7 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
 // 3) Generates perimeters, gap fills and fill regions (fill regions of type stInternal).
 void PrintObject::make_perimeters()
 {
+    ZebuTiming::Scope zebu_timing("1b perimeters");
     // prerequisites
     this->slice();
 
@@ -626,6 +628,7 @@ void PrintObject::make_perimeters()
 
 void PrintObject::prepare_infill()
 {
+    ZebuTiming::Scope zebu_timing("1c prepare infill (solid surfaces, shells, bridges)");
     if (! this->set_started(posPrepareInfill))
         return;
     m_print->set_status(25, L("Generating infill regions"));
@@ -812,6 +815,7 @@ void PrintObject::prepare_infill()
 
 void PrintObject::infill()
 {
+    ZebuTiming::Scope zebu_timing("1d infill");
     // prerequisites
     this->prepare_infill();
 
@@ -839,6 +843,7 @@ void PrintObject::infill()
 
 void PrintObject::ironing()
 {
+    ZebuTiming::Scope zebu_timing("1e ironing");
     if (this->set_started(posIroning)) {
         BOOST_LOG_TRIVIAL(debug) << "Ironing in parallel - start";
         tbb::parallel_for(
@@ -870,6 +875,7 @@ bool PrintObject::need_z_contouring() const
 
 void PrintObject::contour_z()
 {
+    ZebuTiming::Scope zebu_timing("1f z contouring");
     if (!this->set_started(posContouring)) {
         return;
     }
@@ -929,6 +935,7 @@ static const float g_min_overhang_percent_for_lift = 0.3f;
 
 void PrintObject::detect_overhangs_for_lift()
 {
+    ZebuTiming::Scope zebu_timing("1h overhangs for lift");
     if (this->set_started(posDetectOverhangsForLift)) {
         const double nozzle_diameter = m_print->config().nozzle_diameter.get_at(0);
         const coordf_t line_width = this->config().get_abs_value("line_width", nozzle_diameter);
@@ -961,6 +968,7 @@ void PrintObject::detect_overhangs_for_lift()
 
 void PrintObject::generate_support_material(bool with_belt_brim)
 {
+    ZebuTiming::Scope zebu_timing("1g supports");
     if (this->set_started(posSupportMaterial)) {
         this->clear_support_layers();
 
@@ -1030,6 +1038,7 @@ void PrintObject::generate_belt_brim()
 
 void PrintObject::estimate_curled_extrusions()
 {
+    ZebuTiming::Scope zebu_timing("1i curled extrusions");
     if (this->set_started(posEstimateCurledExtrusions)) {
         const auto any_region_enables = [this](ConfigOptionBoolsNullable PrintRegionConfig::*option) {
             return std::any_of(this->print()->m_print_regions.begin(), this->print()->m_print_regions.end(),

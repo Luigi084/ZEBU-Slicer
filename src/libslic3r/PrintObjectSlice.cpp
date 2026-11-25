@@ -14,6 +14,7 @@
 #include <vector>
 #include <utility>
 
+#include "ZebuTiming.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "ElephantFootCompensation.hpp"
@@ -891,6 +892,7 @@ void groupingVolumesForBrim(PrintObject* object, LayerPtrs& layers, int firstLay
 // Resulting expolygons of layer regions are marked as Internal.
 void PrintObject::slice()
 {
+    ZebuTiming::Scope zebu_timing("1a slicing the meshes");
     if (! this->set_started(posSlice))
         return;
     //BBS: add flag to reload scene for shell rendering
