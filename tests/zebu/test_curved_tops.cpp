@@ -103,6 +103,18 @@ int main(int argc, char **argv)
     report("ramp 10 deg, 6 mm", ramp);
     assert(!ramp.empty() && ramp.front().printable);
 
+    // The other heads load, and the 30 mm dome against each.
+    for (const char *id : {"raise-k2plus-eva-sb", "zortrax-m200k"}) {
+        HeadUnderside other;
+        if (!other.load(dir + "/" + id + ".json", &err)) {
+            std::printf("load %s: %s\n", id, err.c_str());
+            return 1;
+        }
+        assert(other.height(0, 0) < 0.05);
+        report((std::string("dome 30 mm on ") + other.name()).c_str(), analyze_curved_tops(height_box(30, 30, 60, [](double x, double y) {
+            return 10. + std::sqrt(150. * 150. - x * x - y * y) - std::sqrt(150. * 150. - 2 * 15. * 15.); }), other, params));
+    }
+
     std::puts("curved tops: OK");
     return 0;
 }
