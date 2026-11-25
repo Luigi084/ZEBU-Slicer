@@ -546,6 +546,10 @@ set(lisbslic3r_sources
     Thread.hpp
     ZebuTiming.cpp
     ZebuTiming.hpp
+    Zebu/CurvedTops.cpp
+    Zebu/CurvedTops.hpp
+    Zebu/HeadUnderside.cpp
+    Zebu/HeadUnderside.hpp
     Time.cpp
     Time.hpp
     Timer.cpp

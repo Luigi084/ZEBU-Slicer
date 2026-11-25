@@ -11,7 +11,13 @@ FLAGS=(-std=c++17 -O1 -Wall -Wextra -I"$ROOT/src/slic3r/Utils" -I"$ROOT/deps_src
 "$CXX" "${FLAGS[@]}" "$ROOT/tests/zebu/test_moonraker.cpp" "$ROOT/src/slic3r/Utils/ZebuMoonraker.cpp" -o "$OUT/t_moon"
 "$OUT/t_moon"
 "$CXX" "${FLAGS[@]}" "$ROOT/tests/zebu/test_update.cpp" "$ROOT/src/slic3r/Utils/ZebuUpdate.cpp" -o "$OUT/t_upd"
+"$CXX" "${FLAGS[@]}" -O2 -I"$ROOT/src" "$ROOT/tests/zebu/test_curved_tops.cpp" "$ROOT/src/libslic3r/Zebu/CurvedTops.cpp" \
+    "$ROOT/src/libslic3r/Zebu/HeadUnderside.cpp" -o "$OUT/t_curved"
+"$OUT/t_curved" "$ROOT/resources/zebu/heads"
 "$OUT/t_upd"
+"$CXX" "${FLAGS[@]}" -O2 -I"$ROOT/src" "$ROOT/tests/zebu/test_curved_tops.cpp" "$ROOT/src/libslic3r/Zebu/CurvedTops.cpp" \
+    "$ROOT/src/libslic3r/Zebu/HeadUnderside.cpp" -o "$OUT/t_curved"
+"$OUT/t_curved" "$ROOT/resources/zebu/heads"
 
 if [ $# -ge 1 ]; then
     # Fake OrcaSlicer data folder: <profiles> as its "system" copy + a few user presets.
