@@ -11,6 +11,16 @@ on:
 
 permissions:
   contents: write
+  actions: write   # lets the jobs drop their older compiler-cache entries
+
+env:
+  # Compiler cache (ccache). Restored before the build and saved after it, even when the build
+  # fails, so the next run only recompiles what changed. One entry per run; older ones are dropped.
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+  CCACHE_MAXSIZE: 2G
+  # Freshly checked-out headers, __DATE__/__TIME__ users and the precompiled header (Linux).
+  CCACHE_SLOPPINESS: pch_defines,time_macros,include_file_mtime,include_file_ctime
+  CCACHE_DEPEND: '1'
 
 concurrency:
   group: zebu-build-${{ github.ref }}
@@ -23,13 +33,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Windows builds with Visual Studio's clang-cl + Ninja (-l -x), like OrcaSlicer's own releases:
+      # the MSBuild generator cannot use a compiler cache. clang-cl dependencies live in deps/build-clang.
       # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
       - name: Restore dependencies
         id: deps-cache
         uses: actions/cache/restore@v4
         with:
-          path: deps/build
-          key: zebu-deps-win-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
+          path: deps/build-clang
+          key: zebu-deps-win-clang-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
 
       - name: Install NSIS
         shell: pwsh
@@ -38,18 +50,62 @@ jobs:
       - name: Build dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         shell: cmd
-        run: build_win.bat -d
+        run: build_win.bat -d -l -x
 
       - name: Save dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps/build
+          path: deps/build-clang
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
+
+      - name: Install ccache
+        uses: hendrikmuhs/ccache-action@v1.2.24
+        with:
+          key: zebu-win
+          max-size: 2G
+          restore: false
+          save: false
+          job-summary: ''
+
+      - name: Restore compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: zebu-ccache-win-
 
       - name: Build ZEBU Slicer
         shell: cmd
-        run: build_win.bat -s --build-dir build
+        run: |
+          ccache -z
+          build_win.bat -s -l -x --cache ccache --build-dir build
+
+      - name: Compiler cache statistics
+        if: always()
+        shell: bash
+        run: ccache -s || true
+
+      # A tag run only reads the branch cache: what it would save is visible to that tag alone.
+      - name: Save compiler cache
+        id: ccache-save
+        if: always() && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Drop older compiler cache entries
+        if: always() && steps.ccache-save.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-win- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
+          grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
+          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
 
       - name: Build installer
         shell: pwsh
@@ -95,8 +151,45 @@ jobs:
           path: deps/build
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
 
+      # build_linux.sh uses ccache by itself once it is installed.
+      - name: Install ccache
+        run: sudo apt-get install -y ccache
+
+      - name: Restore compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-linux-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: zebu-ccache-linux-
+
       - name: Build ZEBU Slicer and the AppImage
-        run: ./build_linux.sh -sir
+        run: |
+          ccache -z
+          ./build_linux.sh -sir
+
+      - name: Compiler cache statistics
+        if: always()
+        run: ccache -s || true
+
+      # A tag run only reads the branch cache: what it would save is visible to that tag alone.
+      - name: Save compiler cache
+        id: ccache-save
+        if: always() && !startsWith(github.ref, 'refs/tags/')
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: zebu-ccache-linux-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Drop older compiler cache entries
+        if: always() && steps.ccache-save.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: zebu-ccache-linux-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-linux- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
+          grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
+          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
 
       - name: Checksum
         run: |
