@@ -31,7 +31,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Windows builds with Visual Studio's clang-cl + Ninja (-l -x), like OrcaSlicer's own releases:
       # the MSBuild generator cannot use a compiler cache. clang-cl dependencies live in deps/build-clang.
@@ -124,7 +124,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
