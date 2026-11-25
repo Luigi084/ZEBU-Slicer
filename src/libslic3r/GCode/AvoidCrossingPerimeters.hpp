@@ -83,6 +83,12 @@ private:
     // Store all needed data for travels outside object
     Boundary m_external;
 
+    // ZEBU: what init_layer() builds (the slices index), prepared ahead.
+    struct SlicesIndex {
+        ExPolygons               lslices_offset;
+        std::vector<BoundingBox> lslices_offset_bboxes;
+        EdgeGrid::Grid           grid;
+    };
     // ZEBU: boundaries prepared by prepare_layer(), per layer.
     struct Prepared {
         double                    print_z { 0. };
@@ -92,6 +98,7 @@ private:
         Polygons                  external_polygons;
         BoundingBox               external_extents;
         std::unique_ptr<Boundary> external;
+        std::unique_ptr<SlicesIndex> slices;
     };
     struct PreparedStore {
         std::mutex                                                     mutex;
@@ -104,6 +111,11 @@ private:
     const Boundary                 *m_external_active { nullptr };
     std::shared_ptr<const Prepared> m_internal_hold;
     std::shared_ptr<const Prepared> m_external_hold;
+    // The slices index in use: the members above, or a prepared one kept alive by m_slices_hold.
+    const ExPolygons               *m_lslices_offset_used { &m_lslices_offset };
+    const std::vector<BoundingBox> *m_lslices_bboxes_used { &m_lslices_offset_bboxes };
+    const EdgeGrid::Grid           *m_grid_lslice_used    { &m_grid_lslice };
+    std::shared_ptr<const Prepared> m_slices_hold;
 };
 
 } // namespace Slic3r

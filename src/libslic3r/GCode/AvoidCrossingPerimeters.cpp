@@ -1273,7 +1273,7 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     const ExPolygons               &lslices          = gcodegen.layer()->lslices;
     const std::vector<BoundingBox> &lslices_bboxes   = gcodegen.layer()->lslices_bboxes;
     bool                            is_support_layer = (dynamic_cast<const SupportLayer *>(gcodegen.layer()) != nullptr);
-    if (!use_external && (is_support_layer || (!m_lslices_offset.empty() && ![&] { ZebuTiming::Scope zebu_timing("2b6b avoid: is the travel inside (any_expolygon_contains)"); return any_expolygon_contains(m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel); }()))) {
+    if (!use_external && (is_support_layer || (!m_lslices_offset_used->empty() && ![&] { ZebuTiming::Scope zebu_timing("2b6b avoid: is the travel inside (any_expolygon_contains)"); return any_expolygon_contains(*m_lslices_offset_used, *m_lslices_bboxes_used, *m_grid_lslice_used, travel); }()))) {
         // Initialize the internal boundary only when it is necessary.
         if (m_internal_active == nullptr || m_internal_active->boundaries.empty() ||
             !(m_internal_active->bbox.contains(startf) && m_internal_active->bbox.contains(endf))) {
@@ -1351,10 +1351,12 @@ Polyline AvoidCrossingPerimeters::travel_to(const GCode &gcodegen, const Point &
     } else if (max_detour_length_exceeded) {
         *could_be_wipe_disabled = false;
     } else
-        *could_be_wipe_disabled = ![&] { ZebuTiming::Scope zebu_timing("2b6e avoid: need_wipe"); return need_wipe(gcodegen, m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice, travel, result_pl, travel_intersection_count); }();
+        *could_be_wipe_disabled = ![&] { ZebuTiming::Scope zebu_timing("2b6e avoid: need_wipe"); return need_wipe(gcodegen, *m_lslices_offset_used, *m_lslices_bboxes_used, *m_grid_lslice_used, travel, result_pl, travel_intersection_count); }();
 
     return result_pl;
 }
+
+static void build_slices_index(const Layer &layer, ExPolygons &lslices_offset, std::vector<BoundingBox> &lslices_offset_bboxes, EdgeGrid::Grid &grid_lslice);
 
 // ZEBU: boundaries built ahead, in parallel (see prepare_layer() in the header).
 void AvoidCrossingPerimeters::prepare_layer(const Layer &layer)
@@ -1369,6 +1371,8 @@ void AvoidCrossingPerimeters::prepare_layer(const Layer &layer)
     // The same calls as travel_to() makes, so the same polygons.
     prepared->internal_polygons = to_polygons(get_boundary(layer, get_perimeter_spacing(layer)));
     prepared->external_polygons = get_boundary_external(layer);
+    prepared->slices            = std::make_unique<SlicesIndex>();
+    build_slices_index(layer, prepared->slices->lslices_offset, prepared->slices->lslices_offset_bboxes, prepared->slices->grid);
     if (!prepared->internal_polygons.empty()) {
         prepared->internal_extents = BoundingBox(get_extents(prepared->internal_polygons));
         prepared->internal         = std::make_unique<Boundary>();
@@ -1416,21 +1420,40 @@ void AvoidCrossingPerimeters::init_layer(const Layer &layer)
                 ++it;
     }
 
-    m_lslices_offset.clear();
-    m_lslices_offset_bboxes.clear();
+    // ZEBU: the slices index may have been prepared ahead, in parallel.
+    if (std::shared_ptr<const Prepared> prepared = this->find_prepared(layer); prepared && prepared->slices) {
+        m_slices_hold         = prepared;
+        m_lslices_offset_used = &prepared->slices->lslices_offset;
+        m_lslices_bboxes_used = &prepared->slices->lslices_offset_bboxes;
+        m_grid_lslice_used    = &prepared->slices->grid;
+        return;
+    }
+    m_slices_hold.reset();
+    build_slices_index(layer, m_lslices_offset, m_lslices_offset_bboxes, m_grid_lslice);
+    m_lslices_offset_used = &m_lslices_offset;
+    m_lslices_bboxes_used = &m_lslices_offset_bboxes;
+    m_grid_lslice_used    = &m_grid_lslice;
+}
+
+// The slices of a layer shrunk by part of the external perimeter width, their bounding boxes and an edge grid:
+// used to tell whether a travel stays inside the object. Shared by init_layer() and prepare_layer().
+static void build_slices_index(const Layer &layer, ExPolygons &lslices_offset, std::vector<BoundingBox> &lslices_offset_bboxes, EdgeGrid::Grid &grid_lslice)
+{
+    lslices_offset.clear();
+    lslices_offset_bboxes.clear();
     for (auto coeff : {0.6f, 0.5f, 0.45f}) {
-        m_lslices_offset = offset_ex(layer.lslices, -get_external_perimeter_width(layer) * coeff);
-        if (!m_lslices_offset.empty()) break;
-    }    
-    m_lslices_offset_bboxes.reserve(m_lslices_offset.size());
-    for (const auto &ex_polygon : m_lslices_offset) m_lslices_offset_bboxes.emplace_back(get_extents(ex_polygon));
+        lslices_offset = offset_ex(layer.lslices, -get_external_perimeter_width(layer) * coeff);
+        if (!lslices_offset.empty()) break;
+    }
+    lslices_offset_bboxes.reserve(lslices_offset.size());
+    for (const auto &ex_polygon : lslices_offset) lslices_offset_bboxes.emplace_back(get_extents(ex_polygon));
 
     BoundingBox bbox_slice(get_extents(layer.lslices));
     bbox_slice.offset(SCALED_EPSILON);
 
-    m_grid_lslice.set_bbox(bbox_slice);
+    grid_lslice.set_bbox(bbox_slice);
     //FIXME 1mm grid?
-    m_grid_lslice.create(m_lslices_offset, coord_t(scale_(1.)));
+    grid_lslice.create(lslices_offset, coord_t(scale_(1.)));
 }
 
 #if 0
