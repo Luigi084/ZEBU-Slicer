@@ -6,13 +6,13 @@ PRODUCTVERSION @SLIC3R_VERSION@
  {
   BLOCK "040904E4"
   {
-   VALUE "CompanyName", "ZEBU Slicer (fork of OrcaSlicer by SoftFever)"
+   VALUE "CompanyName", "Luigi Laplace (ZEBU Slicer, fork of OrcaSlicer by SoftFever)"
    VALUE "FileDescription", "@SLIC3R_APP_NAME@"
    VALUE "FileVersion", "@SLIC3R_BUILD_ID@"
    VALUE "ProductName", "@SLIC3R_APP_NAME@"
    VALUE "ProductVersion", "@ZEBU_VERSION@"
    VALUE "InternalName", "@SLIC3R_APP_NAME@"
-   VALUE "LegalCopyright", "AGPL-3.0"
+   VALUE "LegalCopyright", "ZEBU Slicer (c) 2026 Luigi Laplace - OrcaSlicer (c) SoftFever and contributors - AGPL-3.0"
    VALUE "OriginalFilename", "@ZEBU_APP_CMD@.exe"
   }
  }

@@ -218,6 +218,12 @@ jobs:
     needs: [windows, linux]
     runs-on: ubuntu-24.04
     steps:
+      # Only CHANGELOG.md is needed here, for the release notes.
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: CHANGELOG.md
+          sparse-checkout-cone-mode: false
+
       - uses: actions/download-artifact@v8
         with:
           path: dist
@@ -230,5 +236,8 @@ jobs:
         run: |
           prerelease=""
           case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          # Release notes: this version's section of CHANGELOG.md (from its "## [x.y.z]" heading to the next).
+          awk -v v="${TAG#v}" '$0 ~ "^## \\[" {p = index($0, "[" v "]") > 0; next} p' CHANGELOG.md > notes.md || true
+          [ -s notes.md ] || echo "ZEBU Slicer ${TAG#v}" > notes.md
           gh release create "$TAG" dist/* --repo "$GITHUB_REPOSITORY" --title "ZEBU Slicer ${TAG#v}" \
-            --notes "ZEBU Slicer ${TAG#v}" $prerelease
+            --notes-file notes.md $prerelease

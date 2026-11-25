@@ -5,7 +5,7 @@
     <name>ZEBU Slicer</name>
     <summary>FDM slicer forked from OrcaSlicer, with per-machine presets and a live printer panel</summary>
     <developer id="com.zebu">
-        <name>ZEBU Slicer</name>
+        <name>Luigi Laplace</name>
     </developer>
     <url type="homepage">https://github.com/Luigi084/ZEBU-Slicer</url>
     <url type="bugtracker">https://github.com/Luigi084/ZEBU-Slicer/issues</url>

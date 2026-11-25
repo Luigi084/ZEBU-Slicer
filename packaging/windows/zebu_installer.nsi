@@ -43,7 +43,8 @@ VIAddVersionKey /LANG=0 "ProductName" "${APP_NAME}"
 VIAddVersionKey /LANG=0 "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=0 "FileVersion" "${VERSION}"
 VIAddVersionKey /LANG=0 "FileDescription" "${APP_NAME} installer"
-VIAddVersionKey /LANG=0 "LegalCopyright" "AGPL-3.0 - fork of OrcaSlicer"
+VIAddVersionKey /LANG=0 "LegalCopyright" "ZEBU Slicer (c) 2026 Luigi Laplace - fork of OrcaSlicer - AGPL-3.0"
+VIAddVersionKey /LANG=0 "CompanyName" "Luigi Laplace"
 
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -216,7 +217,7 @@ Section "ZEBU Slicer" SecMain
   WriteRegStr HKLM "${REG_KEY}" "Version" "${VERSION}"
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
-  WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "ZEBU Slicer"
+  WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "Luigi Laplace"
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayIcon" "$INSTDIR\${APP_EXE}"
   WriteRegStr HKLM "${UNINST_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKLM "${UNINST_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'

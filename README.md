@@ -2,8 +2,10 @@
 
 # ZEBU Slicer — Beta 0.2.0
 
-Slicer FDM, fork d'[OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) **v2.5.2**, distribué sous licence **AGPL-3.0**
+Créé par **Luigi Laplace**. Slicer FDM, fork d'[OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) **v2.5.2**, distribué sous licence **AGPL-3.0**
 (voir `LICENSE.txt` ; le README d'origine d'OrcaSlicer est dans `docs/README_OrcaSlicer.md`).
+
+Historique des versions : [CHANGELOG.md](CHANGELOG.md).
 
 ## Ce que ZEBU change par rapport à OrcaSlicer
 

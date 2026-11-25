@@ -38202,8 +38202,8 @@ msgstr "Inclure les versions bêta dans les mises à jour"
 msgid "Offer pre-release (beta) versions as updates."
 msgstr "Proposer les pré-versions (bêta) comme mises à jour."
 
-msgid "ZEBU Slicer is a fork of OrcaSlicer, distributed under the GNU Affero General Public License v3. It keeps OrcaSlicer's engine and adds per-machine presets, a live printer panel and a leaner, more parallel code path."
-msgstr "ZEBU Slicer est un fork d'OrcaSlicer, distribué sous licence GNU Affero General Public License v3. Il reprend le moteur d'OrcaSlicer et ajoute des presets par machine, un panneau de suivi des imprimantes et un code allégé, plus parallèle."
+msgid "ZEBU Slicer, created by Luigi Laplace, is a fork of OrcaSlicer, distributed under the GNU Affero General Public License v3. It keeps OrcaSlicer's engine and adds per-machine presets, a live printer panel and a leaner, more parallel code path."
+msgstr "ZEBU Slicer, créé par Luigi Laplace, est un fork d'OrcaSlicer, distribué sous licence GNU Affero General Public License v3. Il reprend le moteur d'OrcaSlicer et ajoute des presets par machine, un panneau de suivi des imprimantes et un code allégé, plus parallèle."
 
 msgid "Import printers, filaments and processes from OrcaSlicer"
 msgstr "Importer imprimantes, filaments et process depuis OrcaSlicer"
