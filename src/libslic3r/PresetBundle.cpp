@@ -3705,6 +3705,107 @@ void PresetBundle::zebu_apply_visibility()
     hide(this->prints);
 }
 
+namespace {
+// ZEBU: a filament / process preset the user owns and whose machine list names `printer`.
+bool zebu_bound_to(const Preset &preset, const std::string &printer)
+{
+    if (!preset.is_user() || preset.is_external)
+        return false;
+    const auto *list = preset.config.option<ConfigOptionStrings>("compatible_printers");
+    return list != nullptr && std::find(list->values.begin(), list->values.end(), printer) != list->values.end();
+}
+
+// Rewrites a machine list: `from` becomes `to` (or gains `to` next to it), without duplicates.
+void zebu_rewrite_list(std::vector<std::string> &values, const std::string &from, const std::string &to, bool keep_from)
+{
+    std::vector<std::string> out;
+    out.reserve(values.size() + 1);
+    auto add = [&out](const std::string &name) {
+        if (std::find(out.begin(), out.end(), name) == out.end())
+            out.push_back(name);
+    };
+    for (const std::string &name : values) {
+        if (name == from) {
+            if (keep_from)
+                add(from);
+            add(to);
+        } else
+            add(name);
+    }
+    values = std::move(out);
+}
+} // namespace
+
+PresetBundle::ZebuBoundCount PresetBundle::zebu_count_bound_to_printer(const std::string &printer) const
+{
+    ZebuBoundCount count;
+    if (printer.empty())
+        return count;
+    for (const Preset &preset : this->filaments)
+        count.filaments += zebu_bound_to(preset, printer) ? 1 : 0;
+    for (const Preset &preset : this->prints)
+        count.prints += zebu_bound_to(preset, printer) ? 1 : 0;
+    for (const PhysicalPrinter &printer_ph : this->physical_printers)
+        count.physical += printer_ph.preset_names.count(printer) ? 1 : 0;
+    return count;
+}
+
+PresetBundle::ZebuBoundCount PresetBundle::zebu_rebind_printer(const std::string &from, const std::string &to, bool keep_from)
+{
+    ZebuBoundCount count;
+    if (from.empty() || to.empty() || from == to)
+        return count;
+
+    auto rebind = [&](PresetCollection &collection) {
+        int         changed  = 0;
+        const std::string selected = collection.get_selected_preset_name();
+        for (Preset &preset : collection) {
+            if (!zebu_bound_to(preset, from))
+                continue;
+            auto *list = preset.config.option<ConfigOptionStrings>("compatible_printers");
+            zebu_rewrite_list(list->values, from, to, keep_from);
+            // Saved the way PresetCollection::save_current_preset() saves: as a diff against its parent, if any.
+            const Preset *parent = collection.get_preset_parent(preset);
+            preset.save(parent != nullptr && parent != &preset ? const_cast<DynamicPrintConfig *>(&parent->config) : nullptr);
+            preset.sync_info = "update";
+            preset.save_info();
+            // The edited copy of the selected preset gets the same list, so this change alone does not make it dirty.
+            if (preset.name == selected) {
+                if (auto *edited = collection.get_edited_preset().config.option<ConfigOptionStrings>("compatible_printers"))
+                    zebu_rewrite_list(edited->values, from, to, keep_from);
+            }
+            ++changed;
+        }
+        return changed;
+    };
+    count.filaments = rebind(this->filaments);
+    count.prints    = rebind(this->prints);
+
+    // Physical printers: they name the printer presets they connect with.
+    std::vector<PhysicalPrinter> to_save;
+    for (const PhysicalPrinter &printer_ph : this->physical_printers)
+        if (printer_ph.preset_names.count(from))
+            to_save.push_back(printer_ph);
+    const bool        had_selection = this->physical_printers.has_selection();
+    const std::string selected_ph   = had_selection ? this->physical_printers.get_selected_printer_name() : std::string();
+    const std::string selected_pre  = had_selection ? this->physical_printers.get_selected_printer_preset_name() : std::string();
+    for (PhysicalPrinter &printer_ph : to_save) {
+        if (!keep_from)
+            printer_ph.delete_preset(from);
+        printer_ph.add_preset(to);
+        this->physical_printers.save_printer(printer_ph);
+        ++count.physical;
+    }
+    // save_printer() selects the printer it saved (and may re-sort them), so the selection is restored by name.
+    if (count.physical > 0) {
+        if (had_selection)
+            this->physical_printers.select_printer(selected_ph, !keep_from && selected_pre == from ? to : selected_pre);
+        else
+            this->physical_printers.unselect_printer();
+    }
+    return count;
+}
+
 const std::string& PresetBundle::get_preset_name_by_alias( const Preset::Type& preset_type, const std::string& alias) const
 {
     if (preset_type == Preset::TYPE_INVALID)

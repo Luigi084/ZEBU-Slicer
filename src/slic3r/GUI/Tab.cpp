@@ -1,5 +1,6 @@
 //#include "slic3r/Utils/Serial.hpp"
 #include "Tab.hpp"
+#include "ZebuPresetRename.hpp"
 #include "PresetHints.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/PresetBundle.hpp"
@@ -8333,6 +8334,15 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
         BOOST_LOG_TRIVIAL(info) << "sync_preset: create preset = " << new_preset->name;
     }
     new_preset->save_info();
+
+    // ZEBU: a printer saved under a new name can take the filament / process presets of the old one along
+    // (rename) or share them. Deleting the old preset moves the presets in memory, so look the new one up again.
+    if (m_type == Preset::TYPE_PRINTER && name != curr_preset_name) {
+        zebu_after_printer_save_as(m_parent, curr_preset_name, name);
+        new_preset = m_presets->find_preset(name, false, true);
+        if (!new_preset)
+            return;
+    }
 
     // Mark the print & filament enabled if they are compatible with the currently selected preset.
     // If saving the preset changes compatibility with other presets, keep the now incompatible dependent presets selected, however with a "red flag" icon showing that they are no more compatible.

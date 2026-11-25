@@ -24,6 +24,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ZebuImportDialog.hpp
     GUI/ZebuLivePanel.cpp
     GUI/ZebuLivePanel.hpp
+    GUI/ZebuPresetRename.cpp
+    GUI/ZebuPresetRename.hpp
     GUI/ZebuUpdater.cpp
     GUI/ZebuUpdater.hpp
     GUI/AnimatedTexture.cpp

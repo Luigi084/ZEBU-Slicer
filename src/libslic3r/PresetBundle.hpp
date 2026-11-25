@@ -683,6 +683,19 @@ public:
     // They stay loaded as parents of the user presets and as templates for "Create printer / filament".
     void                        zebu_apply_visibility();
 
+    // ZEBU: user filament / process presets and physical printers that use the printer preset `printer`.
+    struct ZebuBoundCount {
+        int  filaments = 0;
+        int  prints    = 0;
+        int  physical  = 0;
+        bool any() const { return filaments + prints + physical > 0; }
+    };
+    ZebuBoundCount              zebu_count_bound_to_printer(const std::string &printer) const;
+    // ZEBU: make what is bound to printer `from` follow printer `to`: keep_from = false replaces `from`
+    // (the machine was renamed), true adds `to` next to it (both machines share them). The changed user
+    // presets are written to disk. Returns what was changed.
+    ZebuBoundCount              zebu_rebind_printer(const std::string &from, const std::string &to, bool keep_from);
+
     const std::string&          get_preset_name_by_alias(const Preset::Type& preset_type, const std::string& alias) const;
 
     const int                   get_required_hrc_by_filament_type(const std::string& filament_type) const;

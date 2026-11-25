@@ -38220,3 +38220,24 @@ msgstr "Imprimante des presets cochés :"
 
 msgid "ZEBU Slicer uses no cloud service. Printers are reached directly on your network (Connection button of each printer)."
 msgstr "ZEBU Slicer n'utilise aucun service cloud. Les imprimantes sont jointes directement sur votre réseau (bouton Connexion de chaque imprimante)."
+
+msgid "ZEBU Slicer - printer saved under a new name"
+msgstr "ZEBU Slicer - imprimante enregistrée sous un nouveau nom"
+
+msgid "Bound to \"%s\": %d filament preset(s), %d process preset(s), %d printer connection(s)."
+msgstr "Liés à « %s » : %d preset(s) de filament, %d preset(s) de process, %d connexion(s) d'imprimante."
+
+msgid "What should \"%s\" get?"
+msgstr "Que doit recevoir « %s » ?"
+
+msgid "Rename: everything moves to \"%s\" and \"%s\" is deleted"
+msgstr "Renommer : tout passe sur « %s » et « %s » est supprimée"
+
+msgid "Share: \"%s\" and \"%s\" both use these presets"
+msgstr "Partager : « %s » et « %s » utilisent toutes les deux ces presets"
+
+msgid "Nothing: \"%s\" starts without presets, \"%s\" keeps them"
+msgstr "Rien : « %s » démarre sans presets, « %s » garde les siens"
+
+msgid "\"%s\" was kept because the printer preset \"%s\" is based on it."
+msgstr "« %s » a été conservée car le preset d'imprimante « %s » est basé dessus."

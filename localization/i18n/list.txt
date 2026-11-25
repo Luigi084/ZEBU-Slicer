@@ -398,3 +398,4 @@ src/slic3r/GUI/Widgets/StepCtrl.cpp
 src/slic3r/GUI/ZebuImportDialog.cpp
 src/slic3r/GUI/ZebuLivePanel.cpp
 src/slic3r/GUI/ZebuUpdater.cpp
+src/slic3r/GUI/ZebuPresetRename.cpp
