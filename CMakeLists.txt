@@ -81,6 +81,14 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_VERSION VERSION_LESS "3.25")
 endif ()
 
 include("version.inc")
+# ZEBU: no cloud services at all (Orca Cloud, Bambu Cloud, Bambu network plug-in); local printer connections
+# (Moonraker, OctoPrint...) are not affected. Defined for every target, so no source depends on an include for it.
+option(ZEBU_NO_CLOUD "Build ZEBU without any cloud service" ON)
+if (ZEBU_NO_CLOUD)
+    add_compile_definitions(ZEBU_NO_CLOUD=1)
+else ()
+    add_compile_definitions(ZEBU_NO_CLOUD=0)
+endif ()
 include(GNUInstallDirs)
 include(CMakeDependentOption)
 

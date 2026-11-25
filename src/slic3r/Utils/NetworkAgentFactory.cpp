@@ -1,5 +1,4 @@
 #include "NetworkAgentFactory.hpp"
-#include "libslic3r/libslic3r_version.h"
 #include "CloudProvider.hpp"
 #include "IPrinterAgent.hpp"
 #include "ICloudServiceAgent.hpp"
