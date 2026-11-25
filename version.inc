@@ -11,7 +11,7 @@ endif()
 # against 3MF/project files, so keeping it lets ZEBU open Orca projects without "newer version" errors.
 set(SoftFever_VERSION "2.5.2")
 # ZEBU Slicer's own version: shown to the user, used by the installer and the updater.
-set(ZEBU_VERSION "0.1.0-beta")
+set(ZEBU_VERSION "0.2.0-beta")
 string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" ZEBU_VERSION_MATCH ${ZEBU_VERSION})
 set(ZEBU_VERSION_MAJOR ${CMAKE_MATCH_1})
 set(ZEBU_VERSION_MINOR ${CMAKE_MATCH_2})
