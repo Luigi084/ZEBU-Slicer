@@ -5,6 +5,20 @@
 Créé par **Luigi Laplace**. Slicer FDM, fork d'[OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) **v2.5.2**, distribué sous licence **AGPL-3.0**
 (voir `LICENSE.txt` ; le README d'origine d'OrcaSlicer est dans `docs/README_OrcaSlicer.md`).
 
+## Télécharger
+
+Pas besoin de compiler : l'installeur Windows (10 et 11, 64 bits) et l'AppImage Linux de la dernière version sont sur
+**<https://vlcad.crea-dictive.fr/zebu/>**, et aussi dans les [Releases GitHub](https://github.com/Luigi084/ZEBU-Slicer/releases).
+
+- **Windows** : lancez `ZEBU_Slicer_Windows_Installer_V<version>_x64.exe`. Le dossier proposé est `Program Files\ZEBU Slicer`, modifiable ; une installation existante est mise à jour.
+- **Linux** : rendez l'AppImage exécutable, puis lancez-la :
+  ```sh
+  chmod +x ZEBU_Slicer_Linux_V<version>.AppImage
+  ./ZEBU_Slicer_Linux_V<version>.AppImage
+  ```
+
+Une fois installé, ZEBU signale lui-même les nouvelles versions au démarrage.
+
 Historique des versions : [CHANGELOG.md](CHANGELOG.md).
 
 ## Ce que ZEBU change par rapport à OrcaSlicer
