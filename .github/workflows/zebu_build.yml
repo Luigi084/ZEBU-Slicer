@@ -112,7 +112,8 @@ jobs:
         run: |
           gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-win- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
           grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
-          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
+          # grep -v finds nothing on the first run (no older entry): not an error.
+          { grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" || true; } | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
 
       - name: Build installer
         shell: pwsh
@@ -196,7 +197,8 @@ jobs:
         run: |
           gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-linux- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
           grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
-          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
+          # grep -v finds nothing on the first run (no older entry): not an error.
+          { grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" || true; } | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
 
       - name: Checksum
         run: |
