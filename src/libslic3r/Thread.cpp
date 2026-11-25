@@ -20,6 +20,8 @@
 #include <thread>
 #include <tbb/parallel_for.h>
 #include <tbb/task_arena.h>
+#include <tbb/global_control.h>
+#include <algorithm>
 
 #include "Thread.hpp"
 #include <cstring>
@@ -232,7 +234,10 @@ void name_tbb_thread_pool_threads_set_locale()
 	// see GH issue #5661 PrusaSlicer hangs on Linux when run with non standard task affinity
 	// TBB will respect the task affinity mask on Linux and spawn less threads than std::thread::hardware_concurrency().
 //	const size_t nthreads_hw = std::thread::hardware_concurrency();
-	const size_t nthreads_hw = tbb::this_task_arena::max_concurrency();
+	// ZEBU: a tbb::global_control limit (ZEBU_MAX_THREADS) does not lower the arena's max_concurrency(), and the
+	// barrier below waits for that many threads at once: with fewer threads allowed it would wait forever.
+	const size_t nthreads_hw = std::min<size_t>(size_t(tbb::this_task_arena::max_concurrency()),
+		tbb::global_control::active_value(tbb::global_control::max_allowed_parallelism));
 	size_t       nthreads    = nthreads_hw;
 
 #ifdef SLIC3R_PROFILE
