@@ -31,17 +31,17 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      # Windows builds with Visual Studio's clang-cl + Ninja (-l -x), like OrcaSlicer's own releases:
-      # the MSBuild generator cannot use a compiler cache. clang-cl dependencies live in deps/build-clang.
+      # Windows stays on MSVC + MSBuild for now. The clang-cl + Ninja build (needed for a compiler cache) failed
+      # in OpenSSL on this runner; it comes back once that is understood. Linux has the compiler cache.
       # Dependencies are cached right after they are built, so a later failure (ZEBU itself) keeps them.
       - name: Restore dependencies
         id: deps-cache
         uses: actions/cache/restore@v4
         with:
-          path: deps/build-clang
-          key: zebu-deps-win-clang-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
+          path: deps/build
+          key: zebu-deps-win-${{ hashFiles('deps/**/*.cmake', 'deps/CMakeLists.txt', 'deps/**/*.patch') }}
 
       - name: Install NSIS
         shell: pwsh
@@ -50,62 +50,18 @@ jobs:
       - name: Build dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         shell: cmd
-        run: build_win.bat -d -l -x
+        run: build_win.bat -d
 
       - name: Save dependencies
         if: steps.deps-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
-          path: deps/build-clang
+          path: deps/build
           key: ${{ steps.deps-cache.outputs.cache-primary-key }}
-
-      - name: Install ccache
-        uses: hendrikmuhs/ccache-action@v1.2.24
-        with:
-          key: zebu-win
-          max-size: 2G
-          restore: false
-          save: false
-          job-summary: ''
-
-      - name: Restore compiler cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: zebu-ccache-win-
 
       - name: Build ZEBU Slicer
         shell: cmd
-        run: |
-          ccache -z
-          build_win.bat -s -l -x --cache ccache --build-dir build
-
-      - name: Compiler cache statistics
-        if: always()
-        shell: bash
-        run: ccache -s || true
-
-      # A tag run only reads the branch cache: what it would save is visible to that tag alone.
-      - name: Save compiler cache
-        id: ccache-save
-        if: always() && !startsWith(github.ref, 'refs/tags/')
-        uses: actions/cache/save@v4
-        with:
-          path: ${{ github.workspace }}/.ccache
-          key: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
-
-      - name: Drop older compiler cache entries
-        if: always() && steps.ccache-save.outcome == 'success'
-        continue-on-error: true
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          KEEP: zebu-ccache-win-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          gh cache list --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF" --key zebu-ccache-win- --limit 100 --json key -q '.[].key' > "$RUNNER_TEMP/keys.txt"
-          grep -qx "$KEEP" "$RUNNER_TEMP/keys.txt" || { echo "new entry not listed, keeping the old ones"; exit 0; }
-          grep -vx "$KEEP" "$RUNNER_TEMP/keys.txt" | while read -r k; do gh cache delete "$k" --repo "$GITHUB_REPOSITORY" || true; done
+        run: build_win.bat -s --build-dir build
 
       - name: Build installer
         shell: pwsh
@@ -113,7 +69,7 @@ jobs:
           $env:Path = "${env:ProgramFiles(x86)}\NSIS;$env:Path"
           .\packaging\windows\build_installer.ps1 -BuildDir build -Config Release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ZEBU_Slicer_Windows
           path: |
@@ -124,7 +80,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Free disk space
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
@@ -197,7 +153,7 @@ jobs:
           for f in ZEBU_Slicer_Linux_V*.AppImage; do sha256sum "$f" > "$f.sha256"; done
           ls -la ZEBU_Slicer_Linux_V*
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: ZEBU_Slicer_Linux
           path: |
@@ -209,7 +165,7 @@ jobs:
     needs: [windows, linux]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
