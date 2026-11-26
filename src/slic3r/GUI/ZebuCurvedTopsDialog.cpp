@@ -189,9 +189,9 @@ public:
         for (size_t i = 0; i < patches.size(); ++i) {
             const Zebu::CurvedTopPatch &p   = patches[i];
             const long                  row = m_list->InsertItem(long(i), wxString::Format("%d", int(i + 1)));
-            m_list->SetItem(row, 1, wxString::Format("%.0f mm²", p.area));
+            m_list->SetItem(row, 1, wxString::Format(L"%.0f mm\u00b2", p.area));
             m_list->SetItem(row, 2, wxString::Format("%.2f mm", p.z_max - p.z_min));
-            m_list->SetItem(row, 3, wxString::Format("%.1f°", p.max_slope_deg));
+            m_list->SetItem(row, 3, wxString::Format(L"%.1f\u00b0", p.max_slope_deg));
             m_list->SetItem(row, 4, p.clearance >= head.cap() - 1e-6 ? wxString(_L("plenty")) : wxString::Format("%+.2f mm", p.clearance));
             m_list->SetItem(row, 5, wxString::Format("%.0f %%", 100. * p.ok_fraction));
             m_list->SetItem(row, 6, p.printable ? _L("Printable curved") : _L("The toolhead would touch"));
