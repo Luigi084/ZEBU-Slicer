@@ -213,11 +213,11 @@ void PrintObject::zebu_plan_curved_tops()
                 printable[p] &= here[p].printable;
     }
 
-    int skipped = 0;
+    int skipped_head = 0, skipped_layers = 0, skipped_thin = 0;
     for (size_t p = 0; p < patches.size(); ++p) {
         const Zebu::CurvedTopPatch &patch = patches[p];
         if (!printable[p]) {
-            ++skipped;
+            ++skipped_head;
             continue;
         }
         CurvedTopPlan plan;
@@ -244,7 +244,7 @@ void PrintObject::zebu_plan_curved_tops()
         // The layer printing the curved layers: the one holding the top of the surface (the analysis chose it).
         auto host = std::lower_bound(params.layer_tops.begin(), params.layer_tops.end(), patch.print_z - 1e-6);
         if (host == params.layer_tops.end() || plan.footprint.empty() || plan.surface.empty()) {
-            ++skipped;
+            ++skipped_layers;
             continue;
         }
         plan.host_layer = size_t(host - params.layer_tops.begin());
@@ -255,13 +255,19 @@ void PrintObject::zebu_plan_curved_tops()
                 z = std::min(z, float(*host));
         plan.z_max = std::min(plan.z_max, *host);
 
-        // The planar layers it touches: from one layer below the lowest curved layer up to the host layer, all of the
-        // regular layer height and none of them the first layer.
+        // The planar layers it touches: from one layer below the lowest curved layer up to the host layer, none of
+        // them the first layer. Their heights may vary ("precise Z height", variable layer height): the lowest curved
+        // layer fills the step left by the last one, so they stay below 1.5 layer heights (it is then at most twice
+        // as thick as the others).
         const double bottom = patch.z_min - (N + 1) * lh;
         bool         ok     = bottom > m_layers.front()->print_z + 1e-6;
         for (size_t l = 0; ok && l <= plan.host_layer; ++l)
-            if (m_layers[l]->print_z > bottom && std::abs(m_layers[l]->height - lh) > 0.005)
+            if (m_layers[l]->print_z > bottom && m_layers[l]->height > 1.5 * lh + 1e-6)
                 ok = false;
+        if (!ok) {
+            ++skipped_layers;
+            continue;
+        }
         // The object must be solid under the surface down there: where a layer lies wholly below the surface, its
         // slices cover the footprint (the curved layers have the planar ones to stand on).
         for (size_t l = 0; ok && l <= plan.host_layer; ++l) {
@@ -281,7 +287,7 @@ void PrintObject::zebu_plan_curved_tops()
                 ok = false;
         }
         if (!ok) {
-            ++skipped;
+            ++skipped_thin;
             continue;
         }
 
@@ -303,11 +309,23 @@ void PrintObject::zebu_plan_curved_tops()
         }
         m_zebu_curved_tops.emplace_back(std::move(plan));
     }
-    if (skipped > 0)
-        warn((boost::format(L("Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (the toolhead could "
-                              "touch the print, or the object is too thin under them).")) % m_zebu_curved_tops.size() % skipped).str());
-    BOOST_LOG_TRIVIAL(info) << "ZEBU curved tops: " << m_zebu_curved_tops.size() << " surface(s) printed curved, " << skipped
-                            << " flat, object " << m_model_object->name;
+    const int skipped = skipped_head + skipped_layers + skipped_thin;
+    if (skipped > 0) {
+        // Why, surface by surface.
+        std::string why;
+        auto        reason = [&why](int count, const std::string &text) {
+            if (count > 0)
+                why += (why.empty() ? "" : ", ") + (boost::format(text) % count).str();
+        };
+        reason(skipped_head, L("%1% where the toolhead could touch the print"));
+        reason(skipped_layers, L("%1% too close to the bed or over layers thicker than 1.5 layer heights"));
+        reason(skipped_thin, L("%1% where the object is too thin under the surface"));
+        warn((boost::format(L("Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (%3%).")) %
+              m_zebu_curved_tops.size() % skipped % why).str());
+    }
+    BOOST_LOG_TRIVIAL(info) << "ZEBU curved tops: " << m_zebu_curved_tops.size() << " surface(s) printed curved, flat: "
+                            << skipped_head << " toolhead, " << skipped_layers << " layers, " << skipped_thin << " thin, object "
+                            << m_model_object->name;
 }
 
 void PrintObject::zebu_make_curved_tops()

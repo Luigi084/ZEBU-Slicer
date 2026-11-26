@@ -38338,8 +38338,17 @@ msgstr "Les dessus courbes (ZEBU) ne sont pas disponibles en mode vase, sur les 
 msgid "Curved top surfaces (ZEBU): the toolhead model cannot be read (%1%), the top surfaces are printed flat."
 msgstr "Dessus courbes (ZEBU) : le modèle de tête ne peut pas être lu (%1%), les dessus sont imprimés à plat."
 
-msgid "Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (the toolhead could touch the print, or the object is too thin under them)."
-msgstr "Dessus courbes (ZEBU) : %1% surface(s) imprimée(s) en courbe, %2% à plat (la tête pourrait toucher la pièce, ou l'objet est trop mince en dessous)."
+msgid "Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (%3%)."
+msgstr "Dessus courbes (ZEBU) : %1% surface(s) imprimée(s) en courbe, %2% à plat (%3%)."
+
+msgid "%1% where the toolhead could touch the print"
+msgstr "%1% où la tête pourrait toucher la pièce"
+
+msgid "%1% too close to the bed or over layers thicker than 1.5 layer heights"
+msgstr "%1% trop près du plateau ou sur des couches de plus de 1,5 hauteur de couche"
+
+msgid "%1% where the object is too thin under the surface"
+msgstr "%1% où l'objet est trop mince sous la surface"
 
 msgid "Choose a toolhead model in the printer settings (Curved top surfaces (ZEBU)) to use this setting."
 msgstr "Choisissez un modèle de tête dans les paramètres de l'imprimante (Dessus courbes (ZEBU)) pour utiliser ce réglage."
