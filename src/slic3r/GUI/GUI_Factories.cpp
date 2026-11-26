@@ -1751,7 +1751,7 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     // ZEBU
     menu->AppendSeparator();
     append_menu_item(menu, wxID_ANY, _L("Curved top surfaces analysis") + dots, "",
-        [](wxCommandEvent&) { zebu_show_curved_tops_analysis(wxGetApp().mainframe); }, "", nullptr,
+        [](wxCommandEvent&) { zebu_show_curved_tops_analysis(wxGetApp().GetTopWindow()); }, "", nullptr,
         []() { return true; }, m_parent);
 }
 
