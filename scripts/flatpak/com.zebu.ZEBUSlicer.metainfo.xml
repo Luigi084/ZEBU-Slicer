@@ -19,6 +19,7 @@
         <p>OrcaSlicer is developed by SoftFever and the OrcaSlicer contributors.</p>
     </description>
     <releases>
+        <release version="0.3.0-beta" date="2026-11-27" type="development" />
         <release version="0.2.0-beta" date="2026-11-25" type="development" />
         <release version="0.1.0-beta" date="2026-11-24" type="development" />
     </releases>

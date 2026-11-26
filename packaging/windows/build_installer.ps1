@@ -14,7 +14,7 @@ $Root     = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $BuildDir = (Resolve-Path (Join-Path $Root $BuildDir)).Path
 $Stage    = Join-Path $BuildDir "zebu_stage"
 
-# Version from version.inc (ZEBU_VERSION "0.2.0-beta")
+# Version from version.inc (ZEBU_VERSION "0.3.0-beta")
 $inc = Get-Content (Join-Path $Root "version.inc") -Raw
 if ($inc -notmatch 'set\(ZEBU_VERSION "([^"]+)"\)') { throw "ZEBU_VERSION not found in version.inc" }
 $Version = $Matches[1]

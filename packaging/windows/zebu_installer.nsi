@@ -1,7 +1,7 @@
 ; ZEBU Slicer - Windows installer (NSIS 3, Unicode)
 ;
 ; Built by packaging/windows/build_installer.ps1:
-;   makensis /DSTAGE_DIR=<cmake --install prefix> /DVERSION=0.2.0-beta /DVERSION_NUM=0.2.0.0 /DOUT_FILE=<exe> zebu_installer.nsi
+;   makensis /DSTAGE_DIR=<cmake --install prefix> /DVERSION=0.3.0-beta /DVERSION_NUM=0.3.0.0 /DOUT_FILE=<exe> zebu_installer.nsi
 ;
 ; - Language chosen at the start of the setup; ZEBU applies it at its next start (HKCU\Software\ZEBU Slicer\Language).
 ; - Default folder: Program Files\ZEBU Slicer, any folder (another drive...) can be chosen.
@@ -17,10 +17,10 @@ RequestExecutionLevel admin
   !error "STAGE_DIR (cmake --install prefix) is required"
 !endif
 !ifndef VERSION
-  !define VERSION "0.2.0-beta"
+  !define VERSION "0.3.0-beta"
 !endif
 !ifndef VERSION_NUM
-  !define VERSION_NUM "0.2.0.0"
+  !define VERSION_NUM "0.3.0.0"
 !endif
 !ifndef OUT_FILE
   !define OUT_FILE "ZEBU_Slicer_Windows_Installer_V${VERSION}_x64.exe"

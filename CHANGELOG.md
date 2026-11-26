@@ -2,7 +2,7 @@
 
 ZEBU Slicer, par Luigi Laplace : fork d'OrcaSlicer 2.5.2, sous licence AGPL-3.0.
 
-## [Non publié]
+## [0.3.0-beta] - 2026-11-27
 
 ### Dessus courbes (non planaire), expérimental
 - Les dessus en pente douce peuvent être imprimés en suivant leur forme, sans marches d'escalier :
@@ -14,8 +14,13 @@ ZEBU Slicer, par Luigi Laplace : fork d'OrcaSlicer 2.5.2, sous licence AGPL-3.0.
   reste plane.
 - Les couches planes s'arrêtent sous la surface ; les dernières couches (4 par défaut) suivent sa forme,
   la plus basse épousant les marches des couches planes (son débit suit son épaisseur).
+- Compatible avec « Hauteur précise du Z » et les hauteurs de couche variables.
 - Menu ZEBU → « Analyse des dessus courbes » (et clic droit sur un objet) : montre en vert les surfaces
-  imprimables en courbe, en orange les autres.
+  imprimables en courbe, en orange les autres. Quand une surface reste plane au tranchage, un
+  avertissement en donne la raison.
+- Premier essai sur une G3D Pro 360 : dôme de 30 mm (1,5 mm de flèche), 4 couches courbes, sans défaut.
+- Une surface n'est imprimée courbe que si elle l'est en entier : une surface qui ne l'est qu'en partie
+  (dôme de 40 mm) reste plane pour l'instant.
 - Pas encore disponible en mode vase, sur les imprimantes à tapis, avec le contournage Z, ni pour un
   objet imprimé avec plusieurs filaments.
 

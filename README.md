@@ -1,6 +1,6 @@
 <p align="center"><img src="resources/zebu/zebu_logo.png" width="260" alt="ZEBU Slicer"></p>
 
-# ZEBU Slicer — Beta 0.2.0
+# ZEBU Slicer — Beta 0.3.0
 
 Créé par **Luigi Laplace**. Slicer FDM, fork d'[OrcaSlicer](https://github.com/OrcaSlicer/OrcaSlicer) **v2.5.2**, distribué sous licence **AGPL-3.0**
 (voir `LICENSE.txt` ; le README d'origine d'OrcaSlicer est dans `docs/README_OrcaSlicer.md`).
@@ -35,9 +35,11 @@ Historique des versions : [CHANGELOG.md](CHANGELOG.md).
 | **Cohabitation avec Orca** | Exécutable `zebu-slicer`, dossier de configuration séparé (`%APPDATA%\ZEBUSlicer`, `~/.config/ZEBUSlicer`). Les projets 3MF d'Orca s'ouvrent normalement : la version interne reste celle d'Orca 2.5.2. |
 | **Réseau** | Pas de code Orca Cloud ni Bambu actif (`ZEBU_NO_CLOUD`). Seule la vérification des mises à jour ZEBU sort sur Internet. |
 | **Machine renommée** (0.2.0) | Enregistrer une imprimante sous un autre nom propose de déplacer (renommer) ou de partager ses filaments, process et connexion. |
-| **Vitesse** (0.2.0) | Les contours d'« Éviter de traverser les parois » sont construits à l'avance, en parallèle, au lieu de l'être dans le thread unique de l'export : sur un Threadripper 2950X, 41,8 s → 33,1 s pour une grosse pièce (+26 %), G-code identique à OrcaSlicer. Chronométrage par étape : variable `ZEBU_TIMINGS`, limite de threads `ZEBU_MAX_THREADS`, banc `scripts/zebu/bench/zebu_bench.ps1`. |
+| **Vitesse** (0.2.0) | Les contours d'« Éviter de traverser les parois » sont construits à l'avance, en parallèle, au lieu de l'être dans le thread unique de l'export : sur un Threadripper 2950X, 38,3 s → 28,1 s pour une grosse pièce (+36 %), G-code identique à OrcaSlicer. Chronométrage par étape : variable `ZEBU_TIMINGS`, limite de threads `ZEBU_MAX_THREADS`, banc `scripts/zebu/bench/zebu_bench.ps1`. |
+| **Dessus courbes** (0.3.0, expérimental) | Les dessus en pente douce sont imprimés en suivant leur forme, sans marches d'escalier : option *Dessus courbes (ZEBU)* de l'onglet Qualité (décochée par défaut). La tête de l'imprimante est décrite par le dessous de son modèle CAO ; une surface n'est imprimée courbe que si la tête ne peut toucher ni la pièce ni les autres objets. Menu ZEBU → *Analyse des dessus courbes* pour voir lesquelles. |
 
-Prévu en **0.3** : dessus non planaires jusqu'à un angle maximal réglable par imprimante.
+<p align="center"><img src="docs/images/zebu_dessus_courbe.jpg" width="480" alt="Dôme de 30 mm imprimé avec les dessus courbes de ZEBU"><br>
+<em>Dôme de 30 mm (1,5 mm de flèche) imprimé en dessus courbe sur une G3D Pro 360 : les 4 dernières couches suivent la surface, sans marches.</em></p>
 
 ## Compiler
 
@@ -48,14 +50,14 @@ build_win.bat -d -l -x                     :: dépendances (une seule fois, long
 build_win.bat -s -l -x --build-dir build   :: ZEBU Slicer (ajouter --cache ccache si ccache est installé)
 powershell -ExecutionPolicy Bypass -File packaging\windows\build_installer.ps1 -BuildDir build
 ```
-→ `build\ZEBU_Slicer_Windows_Installer_V0.2.0-beta_x64.exe` (+ `.sha256`)
+→ `build\ZEBU_Slicer_Windows_Installer_V0.3.0-beta_x64.exe` (+ `.sha256`)
 
 ### Linux (AppImage)
 ```bash
 ./build_linux.sh -u      # paquets système (sudo)
 ./build_linux.sh -dsi    # dépendances + ZEBU + AppImage
 ```
-→ `build/ZEBU_Slicer_Linux_V0.2.0-beta.AppImage`
+→ `build/ZEBU_Slicer_Linux_V0.3.0-beta.AppImage`
 
 Sur Fedora, le plus simple est le conteneur Ubuntu 24.04 fourni : `./build_linux.sh -g -dsi`.
 
@@ -67,7 +69,7 @@ tests/zebu/run_tests.sh /chemin/vers/OrcaSlicer/resources/profiles
 ## Publier une version (avec mise à jour automatique)
 1. Créez le dépôt GitHub, puis mettez son nom dans `version.inc` (`ZEBU_UPDATE_REPO "compte/ZEBU-Slicer"`), ou passez `-DZEBU_UPDATE_REPO=compte/ZEBU-Slicer` à CMake.
 2. Changez `ZEBU_VERSION` dans `version.inc`.
-3. Poussez un tag `v0.2.0-beta` : le workflow *ZEBU build* compile l'installeur Windows et l'AppImage, puis crée la release (pré-release si le tag contient un « - »). Les installations existantes la proposent au démarrage suivant.
+3. Poussez un tag `v0.3.0-beta` : le workflow *ZEBU build* compile l'installeur Windows et l'AppImage, puis crée la release (pré-release si le tag contient un « - »). Les installations existantes la proposent au démarrage suivant.
 
 ## Réglages (fichier `ZEBUSlicer.conf`, section `app`)
 `zebu_strict_presets`, `zebu_hide_system_presets`, `zebu_live_enabled`, `zebu_live_camera_interval_ms` (1000 par défaut), `zebu_check_updates`, `zebu_update_prerelease`.
