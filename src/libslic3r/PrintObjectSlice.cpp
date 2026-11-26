@@ -948,6 +948,10 @@ void PrintObject::slice()
     // BBS: the actual first layer slices stored in layers are re-sorted by volume group and will be used to generate brim
     groupingVolumesForBrim(this, m_layers, firstLayerReplacedBy);
 
+    // ZEBU: room for the curved top surfaces (nothing without the option).
+    this->zebu_plan_curved_tops();
+    m_print->throw_if_canceled();
+
     // Update bounding boxes, back up raw slices of complex models.
     tbb::parallel_for(
         tbb::blocked_range<size_t>(0, m_layers.size()),

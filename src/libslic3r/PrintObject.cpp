@@ -858,6 +858,9 @@ void PrintObject::ironing()
         );
         m_print->throw_if_canceled();
         BOOST_LOG_TRIVIAL(debug) << "Ironing in parallel - end";
+        // ZEBU: the curved top surfaces, once the planar layers have all their extrusions.
+        this->zebu_make_curved_tops();
+        m_print->throw_if_canceled();
         this->set_done(posIroning);
     }
 }

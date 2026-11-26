@@ -2,6 +2,23 @@
 
 ZEBU Slicer, par Luigi Laplace : fork d'OrcaSlicer 2.5.2, sous licence AGPL-3.0.
 
+## [Non publié]
+
+### Dessus courbes (non planaire), expérimental
+- Les dessus en pente douce peuvent être imprimés en suivant leur forme, sans marches d'escalier :
+  option « Dessus courbes (ZEBU) » de l'onglet Qualité du traitement, décochée par défaut. Décochée, le
+  G-code est celui de la 0.2.0-beta.
+- La tête de l'imprimante est décrite par le dessous de son modèle CAO (G3D Pro 360, Raise K2Plus,
+  Zortrax M200k fournis), choisi dans les paramètres de l'imprimante. Une surface n'est imprimée courbe
+  que si la tête, avec sa marge, ne peut toucher ni la pièce ni les autres objets du plateau ; sinon elle
+  reste plane.
+- Les couches planes s'arrêtent sous la surface ; les dernières couches (4 par défaut) suivent sa forme,
+  la plus basse épousant les marches des couches planes (son débit suit son épaisseur).
+- Menu ZEBU → « Analyse des dessus courbes » (et clic droit sur un objet) : montre en vert les surfaces
+  imprimables en courbe, en orange les autres.
+- Pas encore disponible en mode vase, sur les imprimantes à tapis, avec le contournage Z, ni pour un
+  objet imprimé avec plusieurs filaments.
+
 ## [0.2.0-beta] - 2026-11-25
 
 ### Vitesse

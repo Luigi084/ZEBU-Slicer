@@ -2441,7 +2441,11 @@ std::vector<GCode::LayerToPrint> GCode::collect_layers_to_print(const PrintObjec
                 + std::max(0., extra_gap);
             // Negative support_contact_z is not taken into account, it can result in false positives in cases
 
-            if (has_extrusions && layer_to_print.print_z() > maximal_print_z + 2. * EPSILON) {
+            // ZEBU: a layer printing only curved top surfaces: they reach down to the planar layers under them.
+            const Layer *zebu_layer = layer_to_print.object_layer;
+            const bool   zebu_only  = zebu_layer != nullptr && ! zebu_layer->zebu_curved_tops.entities.empty() &&
+                std::none_of(zebu_layer->regions().begin(), zebu_layer->regions().end(), [](const LayerRegion *layerm) { return layerm->has_extrusions(); });
+            if (has_extrusions && ! zebu_only && layer_to_print.print_z() > maximal_print_z + 2. * EPSILON) {
                 // Belt printers: a *leading* empty range (no prior extrusion layer, so the
                 // gap starts at Z=0) is not a floating object — it is just the belt lead-in.
                 // The part rests on the conveyor as it advances, so the first material can
@@ -7336,6 +7340,12 @@ LayerResult GCode::process_layer(
                     }
                 }
             } // for regions
+
+            // ZEBU: a layer printing curved top surfaces visits its object with their extruder, even with nothing else
+            // to print there (zebu_extrude_curved_tops() below).
+            if (layer.zebu_curved_filament > 0)
+                object_islands_by_extruder(by_extruder, zebu_curved_tops_extruder(layer, layer_tools), &layer_to_print - layers.data(),
+                                           layers.size(), n_slices + 1);
         }
     } // for objects
 
@@ -7879,6 +7889,11 @@ LayerResult GCode::process_layer(
                     // ironing
                     gcode += this->extrude_infill(print,by_region_specific, true);
                 }
+                // ZEBU: the curved top surfaces, after everything else of the object on this layer.
+                if (print_wipe_extrusions == 0 && visit.first_visit && layer_to_print.object_layer != nullptr &&
+                    layer_to_print.object_layer->zebu_curved_filament > 0 &&
+                    extruder_id == zebu_curved_tops_extruder(*layer_to_print.object_layer, layer_tools))
+                    gcode += this->zebu_extrude_curved_tops(*layer_to_print.object_layer);
 
                 if (this->config().gcode_label_objects) {
                     gcode += std::string("; stop printing object ") +
@@ -9130,6 +9145,70 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
     return gcode;
 }
 
+unsigned int GCode::zebu_curved_tops_extruder(const Layer &layer, const LayerTools &layer_tools)
+{
+    const unsigned int filament = layer_tools.extruder_override > 0 ? unsigned(layer_tools.extruder_override) : layer.zebu_curved_filament;
+    unsigned int       extruder = filament > 0 ? filament - 1 : 0;
+    if (!layer_tools.has_extruder(extruder) && !layer_tools.extruders.empty())
+        extruder = layer_tools.extruders.back();
+    return extruder;
+}
+
+double GCode::zebu_curved_flow_ratio(const ExtrusionPath &path, const Point3 &point) const
+{
+    // Only the lowest curved layer varies: it fills the steps of the planar layers under it.
+    if (path.zebu_curved != 2 || m_layer == nullptr || m_layer->object() == nullptr || path.height <= 0.f)
+        return 1.;
+    const double base = m_layer->object()->zebu_curved_top_base(point.to_point());
+    if (std::isnan(base))
+        return 1.;
+    const double z = m_layer->print_z + unscale<double>(point.z());
+    return std::clamp((z - base) / double(path.height), 0.25, 2.);
+}
+
+std::string GCode::zebu_extrude_curved_tops(const Layer &layer)
+{
+    std::string gcode;
+    if (layer.zebu_curved_tops.entities.empty() || layer.zebu_curved_region == nullptr)
+        return gcode;
+    m_config.apply(layer.zebu_curved_region->config());
+    // Everything printed is below this layer's top, and the curved layers too: travels go over it.
+    const double safe_z = m_nominal_z + std::max(0.2, m_config.zebu_curved_top_margin.value);
+    // A path starting this close to where the previous one ended is reached along the surface.
+    const double hop = 2.;
+    bool on_surface = false;
+    for (const ExtrusionEntity *block_entity : layer.zebu_curved_tops.entities) {
+        const auto *block = static_cast<const ExtrusionEntityCollection*>(block_entity);
+        for (const ExtrusionEntity *entity : block->entities) {
+            const auto   &path  = *static_cast<const ExtrusionPath*>(entity);
+            const Point3 &first = path.first_point3();
+            const Vec2d   xy    = this->point_to_gcode(first.to_point());
+            const double  z     = m_nominal_z + unscale<double>(first.z());
+            if (! m_last_pos_defined || m_last_pos.to_point() != first.to_point() ||
+                std::abs(m_writer.get_position().z() - z) > EPSILON) {
+                const double dist = m_last_pos_defined ? unscale<double>((first.to_point() - m_last_pos.to_point()).cast<double>().norm()) : hop;
+                if (on_surface && dist < hop) {
+                    gcode += m_writer.travel_to_xyz(Vec3d(xy.x(), xy.y(), z), "curved top: next path");
+                } else {
+                    gcode += this->retract(false, false, LiftType::NormalLift, true);
+                    gcode += m_writer.travel_to_z(std::max(safe_z, m_writer.get_position().z()), "curved top: lift", true);
+                    gcode += m_writer.travel_to_xy(xy, "curved top: travel");
+                    gcode += m_writer.travel_to_z(z, "curved top: down", true);
+                }
+                m_need_change_layer_lift_z = false;
+                this->set_last_pos(first.to_point());
+            }
+            gcode += this->_extrude(path, "curved top surface");
+            // No wipe along a path that climbs or descends.
+            m_wipe.reset_path();
+            on_surface = true;
+        }
+    }
+    gcode += this->retract(false, false, LiftType::NormalLift, true);
+    gcode += m_writer.travel_to_z(safe_z, "curved top: lift", true);
+    return gcode;
+}
+
 std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fills, const ExtrusionRole support_extrusion_role)
 {
     ZebuTiming::Scope zebu_timing("2b3 supports (extrude_support)");
@@ -9821,7 +9900,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
         (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
 
-    if (need_overhang_detection && !path_on_first_layer && !object_layer_over_raft() &&
+    // ZEBU: a curved top surface's walls stand on the curved layers below them, not on the layer below this one.
+    if (need_overhang_detection && !path_on_first_layer && !object_layer_over_raft() && path.zebu_curved == 0 &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
@@ -10220,7 +10300,9 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                         coordf_t z_diff = unscale_(line.b.z());
 
                         double extrusion_ratio = 1;
-                        if (path.role() != erIroning) {
+                        if (path.zebu_curved != 0) {
+                            extrusion_ratio = this->zebu_curved_flow_ratio(path, line.b);
+                        } else if (path.role() != erIroning) {
                             extrusion_ratio = (path.height + z_diff) / path.height;
                         }
 
@@ -10428,7 +10510,9 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                 coordf_t z_diff = unscale_(processed_point.p.z());
 
                 double extrusion_ratio = 1;
-                if (path.role() != erIroning) {
+                if (path.zebu_curved != 0) {
+                    extrusion_ratio = this->zebu_curved_flow_ratio(path, processed_point.p);
+                } else if (path.role() != erIroning) {
                     extrusion_ratio = (path.height + z_diff) / path.height;
                 }
 

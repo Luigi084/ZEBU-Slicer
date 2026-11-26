@@ -1159,6 +1159,17 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"zaa_minimize_perimeter_height", "zaa_min_z", "zaa_dont_alternate_fill_direction", "ironing_expansion"})
         toggle_line(el, has_zaa, -1, _L("Enable Z contouring to use this setting."));
 
+    // ZEBU: curved top surfaces need the printer's toolhead model.
+    {
+        const DynamicPrintConfig &printer   = preset_bundle->printers.get_edited_preset().config;
+        const bool                zebu_head = printer.has("zebu_head_model") && !printer.opt_string("zebu_head_model").empty();
+        toggle_field("zebu_curved_tops", zebu_head, -1,
+                     _L("Choose a toolhead model in the printer settings (Curved top surfaces (ZEBU)) to use this setting."));
+        const bool zebu_on = zebu_head && config->opt_bool("zebu_curved_tops");
+        for (auto el : {"zebu_curved_top_layers", "zebu_curved_top_angle"})
+            toggle_field(el, zebu_on, -1, _L("Enable curved top surfaces to use this setting."));
+    }
+
     bool have_sequential_printing = (config->opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject);
     // for (auto el : { "extruder_clearance_radius", "extruder_clearance_height_to_rod", "extruder_clearance_height_to_lid" })
     //     toggle_field(el, have_sequential_printing);

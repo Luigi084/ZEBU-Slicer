@@ -664,6 +664,13 @@ protected:
     std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only = false);
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
+    // ZEBU: the curved top surfaces printed with this object layer (Layer::zebu_curved_tops), with travels lifted
+    // above them; the nozzle is left above everything printed.
+    std::string     zebu_extrude_curved_tops(const Layer &layer);
+    // Their extruder (zero based) on this layer.
+    static unsigned int zebu_curved_tops_extruder(const Layer &layer, const LayerTools &layer_tools);
+    // Flow of a point of a curved top surface's path, relative to its nominal flow.
+    double          zebu_curved_flow_ratio(const ExtrusionPath &path, const Point3 &point) const;
 
     // Farthest-point timelapse: find the extrusion point farthest from camera (0,0)
     void compute_farthest_point(const std::vector<LayerToPrint> &layers, int most_used_extruder,

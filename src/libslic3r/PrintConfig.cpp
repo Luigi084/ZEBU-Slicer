@@ -5324,6 +5324,36 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.05));
 
+    // ZEBU: curved (non-planar) top surfaces, process side. The printer must have a toolhead model.
+    def = this->add("zebu_curved_tops", coBool);
+    def->label    = L("Curved top surfaces (ZEBU)");
+    def->category = L("Quality");
+    def->tooltip  = L("Print the last layers of gently sloped top surfaces following their shape instead of as stair "
+                      "steps, where the toolhead model of the printer shows that it cannot touch the print (see "
+                      "\"Curved top surfaces analysis\" in the ZEBU menu). The other surfaces are printed as usual.\n"
+                      "Needs a toolhead model in the printer settings.");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("zebu_curved_top_layers", coInt);
+    def->label    = L("Curved layers");
+    def->category = L("Quality");
+    def->tooltip  = L("Number of layers following the shape of a curved top surface. The layers below them are planar.");
+    def->min      = 1;
+    def->max      = 10;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(4));
+
+    def = this->add("zebu_curved_top_angle", coFloat);
+    def->label    = L("Maximum slope");
+    def->category = L("Quality");
+    def->tooltip  = L("Steepest top surface printed curved for this print. It cannot exceed the maximum slope of the printer.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min      = 1;
+    def->max      = 30;
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(15));
+
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
     def->tooltip = L("This G-code is inserted at every layer change after the Z lift.");

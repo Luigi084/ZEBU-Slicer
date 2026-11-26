@@ -68,7 +68,88 @@ struct UnionFind
 
 } // namespace
 
-std::vector<CurvedTopPatch> analyze_curved_tops(const SimpleMesh &mesh, const HeadUnderside &head, const CurvedTopsParams &params)
+double HeightField::cell_height(double x, double y) const
+{
+    const int i = cell_x(x), j = cell_y(y);
+    return valid(i, j) ? double(at(i, j)) : std::numeric_limits<double>::quiet_NaN();
+}
+
+double HeightField::sample(double x, double y) const
+{
+    const double fx = (x - x0) / step - 0.5, fy = (y - y0) / step - 0.5;
+    const int    i = int(std::floor(fx)), j = int(std::floor(fy));
+    const double tx = fx - i, ty = fy - j;
+    double sum = 0., weight = 0.;
+    for (int dj = 0; dj < 2; ++dj)
+        for (int di = 0; di < 2; ++di)
+            if (valid(i + di, j + dj)) {
+                const double w = (di ? tx : 1. - tx) * (dj ? ty : 1. - ty) + 1e-9;
+                sum += w * at(i + di, j + dj);
+                weight += w;
+            }
+    return weight > 0. ? sum / weight : std::numeric_limits<double>::quiet_NaN();
+}
+
+HeightField rasterize_facets(const SimpleMesh &mesh, const std::vector<int> &facets, double step, int extend)
+{
+    HeightField out;
+    if (facets.empty())
+        return out;
+    double xmin = 1e30, ymin = 1e30, xmax = -1e30, ymax = -1e30;
+    for (int f : facets)
+        for (int k = 0; k < 3; ++k) {
+            const auto &v = mesh.vertices[mesh.faces[f][k]];
+            xmin = std::min(xmin, double(v[0])); xmax = std::max(xmax, double(v[0]));
+            ymin = std::min(ymin, double(v[1])); ymax = std::max(ymax, double(v[1]));
+        }
+    Grid grid;
+    grid.step = step;
+    grid.x0   = xmin - (extend + 1) * step;
+    grid.y0   = ymin - (extend + 1) * step;
+    grid.nx   = int(std::ceil((xmax - grid.x0) / step)) + extend + 2;
+    grid.ny   = int(std::ceil((ymax - grid.y0) / step)) + extend + 2;
+    grid.z.assign(size_t(grid.nx) * size_t(grid.ny), NONE);
+    for (int f : facets)
+        rasterize_max(grid, vertex(mesh, mesh.faces[f][0]), vertex(mesh, mesh.faces[f][1]), vertex(mesh, mesh.faces[f][2]));
+    // Grow the surface by its nearest heights, one ring of cells at a time.
+    for (int ring = 0; ring < extend; ++ring) {
+        std::vector<double> next = grid.z;
+        for (int j = 0; j < grid.ny; ++j)
+            for (int i = 0; i < grid.nx; ++i)
+                if (grid.at(i, j) == NONE) {
+                    double sum = 0.;
+                    int    n   = 0;
+                    for (int dj = -1; dj <= 1; ++dj)
+                        for (int di = -1; di <= 1; ++di)
+                            if ((di != 0 || dj != 0) && grid.inside(i + di, j + dj) && grid.at(i + di, j + dj) != NONE) {
+                                sum += grid.at(i + di, j + dj);
+                                ++n;
+                            }
+                    if (n > 0)
+                        next[size_t(j) * size_t(grid.nx) + size_t(i)] = sum / n;
+                }
+        grid.z = std::move(next);
+    }
+    out.x0 = grid.x0;
+    out.y0 = grid.y0;
+    out.step = step;
+    out.nx = grid.nx;
+    out.ny = grid.ny;
+    out.z.resize(grid.z.size());
+    for (size_t k = 0; k < grid.z.size(); ++k)
+        out.z[k] = grid.z[k] == NONE ? std::numeric_limits<float>::quiet_NaN() : float(grid.z[k]);
+    return out;
+}
+
+std::string head_model_path(const std::string &value, const std::string &resources_dir)
+{
+    if (value.find('/') != std::string::npos || value.find('\\') != std::string::npos)
+        return value;
+    return resources_dir + "/zebu/heads/" + value + ".json";
+}
+
+std::vector<CurvedTopPatch> analyze_curved_tops(const SimpleMesh &mesh, const HeadUnderside &head, const CurvedTopsParams &params,
+                                                const Obstacles *obstacles)
 {
     std::vector<CurvedTopPatch> patches;
     if (mesh.faces.empty() || head.empty())
@@ -83,15 +164,29 @@ std::vector<CurvedTopPatch> analyze_curved_tops(const SimpleMesh &mesh, const He
             xmin = std::min(xmin, double(v[0])); xmax = std::max(xmax, double(v[0]));
             ymin = std::min(ymin, double(v[1])); ymax = std::max(ymax, double(v[1]));
         }
+        // With other objects around, the grid reaches as far as the head does, so that it sees them.
+        double reach = 2. * params.grid;
+        if (obstacles != nullptr && !obstacles->mesh.faces.empty())
+            for (const auto &o : head.offsets_below(head.cap() + 1., params.grid, 0.))
+                reach = std::max(reach, (std::max(std::abs(o.di), std::abs(o.dj)) + 1) * params.grid);
         top.step = params.grid;
-        top.x0   = xmin - 2. * params.grid;
-        top.y0   = ymin - 2. * params.grid;
-        top.nx   = int(std::ceil((xmax - top.x0) / top.step)) + 3;
-        top.ny   = int(std::ceil((ymax - top.y0) / top.step)) + 3;
+        top.x0   = xmin - reach;
+        top.y0   = ymin - reach;
+        top.nx   = int(std::ceil((xmax + reach - top.x0) / top.step)) + 1;
+        top.ny   = int(std::ceil((ymax + reach - top.y0) / top.step)) + 1;
         top.z.assign(size_t(top.nx) * size_t(top.ny), NONE);
         for (const auto &f : mesh.faces)
             rasterize_max(top, vertex(mesh, f[0]), vertex(mesh, f[1]), vertex(mesh, f[2]));
     }
+    // The other objects, on the same grid (only what lies over it can come under the head).
+    Grid others = top;
+    std::fill(others.z.begin(), others.z.end(), NONE);
+    bool has_others = false;
+    if (obstacles != nullptr)
+        for (const auto &f : obstacles->mesh.faces) {
+            rasterize_max(others, vertex(obstacles->mesh, f[0]), vertex(obstacles->mesh, f[1]), vertex(obstacles->mesh, f[2]));
+            has_others = true;
+        }
 
     // Candidate faces: facing up, not steeper than the limit, and on top (nothing above them).
     const size_t      nf = mesh.faces.size();
@@ -168,22 +263,40 @@ std::vector<CurvedTopPatch> analyze_curved_tops(const SimpleMesh &mesh, const He
         if (cells.empty())
             continue;
 
-        // When the curved layers are printed, the planar layers have reached z_c everywhere else.
-        const double z_c = std::ceil(patch.z_max / lh - 1e-6) * lh;
+        // When the curved layers are printed, the planar layers have reached z_c everywhere else: the top of the
+        // layer holding the surface's top (the last one sliced below it).
+        double z_c = std::ceil(patch.z_max / lh - 0.5 - 1e-6) * lh;
+        if (!params.layer_tops.empty()) {
+            auto it = std::lower_bound(params.layer_tops.begin(), params.layer_tops.end(), patch.z_max - 0.5 * lh - 1e-6);
+            if (it == params.layer_tops.end())
+                continue; // No layer reaches the top: nothing to print it with.
+            z_c = *it;
+        }
+        patch.print_z = z_c;
         // Material around the nozzle: the patch itself (its curved layers rise like the surface), elsewhere
-        // the object up to z_c, raised by the curved layers below the top one (the nozzle sits lower then).
+        // the object up to z_c. For the curved layers below the top one, the nozzle sits lower: gap_at() below.
+        // Other objects: as high as they are when complete, or capped like the object.
+        auto other_object = [&](int i, int j) {
+            const double o = others.at(i, j);
+            return o == NONE ? NONE : (obstacles->full_height ? o : std::min(o, z_c));
+        };
         auto material = [&](int i, int j) -> std::pair<double, bool> {
             if (!top.inside(i, j))
                 return {NONE, false};
+            const double o = has_others ? other_object(i, j) : NONE;
             if (own.at(i, j) != NONE)
-                return {own.at(i, j), true};
+                return {std::max(own.at(i, j), o), o <= own.at(i, j)};
             const double t = top.at(i, j);
-            return {t == NONE ? NONE : std::min(t, z_c) + (N - 1) * lh, false};
+            return {std::max(t == NONE ? NONE : std::min(t, z_c), o), false};
         };
         double highest = NONE;
         for (const double t : top.z)
             if (t != NONE)
                 highest = std::max(highest, std::min(t, z_c) + (N - 1) * lh);
+        if (has_others)
+            for (int j = 0; j < others.ny; ++j)
+                for (int i = 0; i < others.nx; ++i)
+                    highest = std::max(highest, other_object(i, j) + (N - 1) * lh);
         const double rise_max = std::max(highest, patch.z_max) - patch.z_min;
         const auto   offsets  = head.offsets_below(rise_max + params.margin, params.grid, 0.);
 
@@ -222,7 +335,7 @@ std::vector<CurvedTopPatch> analyze_curved_tops(const SimpleMesh &mesh, const He
         patch.clearance         = worst_gap == 1e30 ? head.cap() : worst_gap;
         patch.ok_fraction       = double(ok_top) / double(cells.size());
         patch.ok_fraction_lower = double(ok_all) / double(cells.size());
-        patch.printable         = ok_top == cells.size();
+        patch.printable         = ok_top == cells.size() && ok_all == cells.size();
         result.push_back(std::move(patch));
     }
     std::sort(result.begin(), result.end(), [](const CurvedTopPatch &a, const CurvedTopPatch &b) { return a.area > b.area; });

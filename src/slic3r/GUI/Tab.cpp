@@ -3107,6 +3107,12 @@ void TabPrint::build()
         optgroup->append_single_option_line("zaa_minimize_perimeter_height", "quality_settings_z_contouring#minimize-wall-height-angle");
         optgroup->append_single_option_line("zaa_min_z", "quality_settings_z_contouring#minimum-z-height");
         optgroup->append_single_option_line("zaa_dont_alternate_fill_direction", "quality_settings_z_contouring#dont-alternate-fill-direction");
+
+        // ZEBU: curved (non-planar) top surfaces; the printer needs a toolhead model.
+        optgroup = page->new_optgroup(L("Curved top surfaces (ZEBU)"), L"param_z_contouring");
+        optgroup->append_single_option_line("zebu_curved_tops");
+        optgroup->append_single_option_line("zebu_curved_top_layers");
+        optgroup->append_single_option_line("zebu_curved_top_angle");
         // Orca: it's not used yet, so hide it in UI for now
         // optgroup->append_single_option_line("ironing_expansion");
 

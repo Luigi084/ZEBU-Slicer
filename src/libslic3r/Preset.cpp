@@ -1531,6 +1531,8 @@ static std::vector<std::string> s_Preset_print_options{
     "zaa_minimize_perimeter_height",
     "zaa_dont_alternate_fill_direction",
     "zaa_min_z",
+    // ZEBU: curved top surfaces
+    "zebu_curved_tops", "zebu_curved_top_layers", "zebu_curved_top_angle",
     "ironing_expansion",
 };
 

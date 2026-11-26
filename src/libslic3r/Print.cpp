@@ -305,10 +305,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "plugins",
         "extruder_clearance_height_to_rod",
         "extruder_clearance_height_to_lid",
-        // ZEBU: curved top surfaces (only analysed for now).
-        "zebu_head_model",
-        "zebu_curved_top_max_angle",
-        "zebu_curved_top_margin",
         "extruder_clearance_radius",
         "nozzle_height",
         "extruder_colour",
@@ -505,7 +501,11 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             // Belt printer transform options change the mesh geometry before slicing.
             || opt_key == "belt_printer"
             || opt_key == "belt_slice_rotation"
-            || opt_key == "belt_slice_rotation_angle") {
+            || opt_key == "belt_slice_rotation_angle"
+            // ZEBU: the curved top surfaces change the planar layers under them.
+            || opt_key == "zebu_head_model"
+            || opt_key == "zebu_curved_top_max_angle"
+            || opt_key == "zebu_curved_top_margin") {
             osteps.emplace_back(posSlice);
         } else if (
                opt_key == "belt_support_floor_offset") {

@@ -52,6 +52,7 @@
 #include <utility>
 
 #include "calib.hpp"
+#include "Zebu/CurvedTopsSlicing.hpp"
 
 namespace Slic3r {
 
@@ -381,6 +382,12 @@ public:
     // Equal to trafo_centered() unless a belt rotation or pre-slice remap is active.
     Transform3d                  trafo_sliced() const;
     const PrintInstances&        instances() const      { return m_instances; }
+    // ZEBU: the top surfaces printed curved (empty unless the "zebu_curved_tops" option is on).
+    const std::vector<Zebu::CurvedTopPlan> &zebu_curved_tops() const { return m_zebu_curved_tops; }
+    // Top (print_z) of the planar layers kept under the point of a surface printed curved, NaN elsewhere: the lowest
+    // curved layer is that much thicker.
+    double                       zebu_curved_top_base(const Point &pt) const;
+
     // Orca: Bounding box of each connected body, indexed by Layer::lslices_separated_component_ids.
     const std::vector<BoundingBox>& separated_body_bboxes() const { return m_separated_body_bboxes; }
     PrintInstances &instances() { return m_instances; }
@@ -581,6 +588,10 @@ private:
     void ironing();
     bool need_z_contouring() const;
     void contour_z();
+    // ZEBU curved tops: plans them and cuts their room out of the planar layers (in slice()), then builds their
+    // extrusions (after ironing).
+    void zebu_plan_curved_tops();
+    void zebu_make_curved_tops();
     // with_belt_brim = false leaves the belt brim to generate_belt_brim(), for a
     // caller that runs the support step of several objects in parallel.
     void generate_support_material(bool with_belt_brim = true);
@@ -716,6 +727,8 @@ private:
     ExtrusionEntityCollection               m_skirt;
 
     PrintObject*                            m_shared_object{ nullptr };
+
+    std::vector<Zebu::CurvedTopPlan>        m_zebu_curved_tops;
 
     // Belt printer: global Z offset applied to this object's layers for shear positioning.
     double                                  m_belt_global_z_offset { 0.0 };

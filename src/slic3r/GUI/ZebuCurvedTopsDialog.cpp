@@ -1,6 +1,9 @@
 // ZEBU Slicer: analysis of curved (non-planar) top surfaces for the selected object.
 #include "ZebuCurvedTopsDialog.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
@@ -51,13 +54,6 @@ Zebu::SimpleMesh instance_mesh(const ModelObject &object, int instance_idx)
                                         std::array<int, 3>{offset + f[0], offset + f[1], offset + f[2]});
     }
     return mesh;
-}
-
-std::string head_model_path(const std::string &value)
-{
-    if (value.find('/') != std::string::npos || value.find('\\') != std::string::npos)
-        return value;
-    return (boost::filesystem::path(resources_dir()) / "zebu" / "heads" / (value + ".json")).string();
 }
 
 class CurvedTopsDialog : public wxDialog
@@ -144,24 +140,38 @@ public:
         }
         Zebu::HeadUnderside head;
         std::string         error;
-        if (!head.load(head_model_path(head_value), &error)) {
+        if (!head.load(Zebu::head_model_path(head_value, resources_dir()), &error)) {
             m_header->SetLabel(wxString::Format(_L("The toolhead model \"%s\" cannot be read: %s"), wxString::FromUTF8(head_value),
                                                 wxString::FromUTF8(error)));
             this->Layout();
             return;
         }
 
+        // The same settings as the slicing (Quality tab of the process, and the printer's limits).
         Zebu::CurvedTopsParams params;
-        params.max_angle_deg = printer.opt_float("zebu_curved_top_max_angle");
+        params.max_angle_deg = std::min(print.opt_float("zebu_curved_top_angle"), printer.opt_float("zebu_curved_top_max_angle"));
         params.margin        = printer.opt_float("zebu_curved_top_margin");
         params.layer_height  = print.opt_float("layer_height");
-        params.curved_layers = std::max(1, print.opt_int("top_shell_layers"));
+        params.curved_layers = std::max(1, print.opt_int("zebu_curved_top_layers"));
+        const bool enabled   = print.opt_bool("zebu_curved_tops");
 
         std::vector<Zebu::CurvedTopPatch> patches;
         {
             wxBusyCursor busy;
             const Zebu::SimpleMesh mesh = instance_mesh(object, inst_idx);
-            patches                     = Zebu::analyze_curved_tops(mesh, head, params);
+            // Everything else on the plates, which the toolhead must clear too.
+            Zebu::Obstacles obstacles;
+            obstacles.full_height = print.has("print_sequence") && print.opt_enum<PrintSequence>("print_sequence") == PrintSequence::ByObject;
+            for (size_t o = 0; o < model.objects.size(); ++o)
+                for (size_t i = 0; i < model.objects[o]->instances.size(); ++i)
+                    if (int(o) != obj_idx || int(i) != inst_idx) {
+                        const Zebu::SimpleMesh other = instance_mesh(*model.objects[o], int(i));
+                        const int              base  = int(obstacles.mesh.vertices.size());
+                        obstacles.mesh.vertices.insert(obstacles.mesh.vertices.end(), other.vertices.begin(), other.vertices.end());
+                        for (const auto &f : other.faces)
+                            obstacles.mesh.faces.push_back({base + f[0], base + f[1], base + f[2]});
+                    }
+            patches = Zebu::analyze_curved_tops(mesh, head, params, &obstacles);
 
             // Colour the surfaces in the 3D view.
             std::vector<std::pair<indexed_triangle_set, ColorRGBA>> overlay;
@@ -193,14 +203,19 @@ public:
             m_list->SetItem(row, 2, wxString::Format("%.2f mm", p.z_max - p.z_min));
             m_list->SetItem(row, 3, wxString::Format(L"%.1f\u00b0", p.max_slope_deg));
             m_list->SetItem(row, 4, p.clearance >= head.cap() - 1e-6 ? wxString(_L("plenty")) : wxString::Format("%+.2f mm", p.clearance));
-            m_list->SetItem(row, 5, wxString::Format("%.0f %%", 100. * p.ok_fraction));
+            // Every curved layer must pass: the share of the worst one, rounded down (100 % only when it all passes).
+            m_list->SetItem(row, 5, wxString::Format("%d %%", int(std::floor(100. * std::min(p.ok_fraction, p.ok_fraction_lower) + 1e-9))));
             m_list->SetItem(row, 6, p.printable ? _L("Printable curved") : _L("The toolhead would touch"));
             printable += p.printable;
         }
-        m_footer->SetLabel(patches.empty() ?
+        wxString footer = patches.empty() ?
             _L("No top surface of this object is gentle enough to be printed curved.") :
             wxString::Format(_L("%d of %d surfaces can be printed curved (green in the 3D view; orange: the toolhead "
-                                "would touch). Nothing is printed curved yet: this is an analysis."), printable, int(patches.size())));
+                                "would touch)."), printable, int(patches.size()));
+        if (!patches.empty())
+            footer += "\n" + (enabled ? _L("\"Curved top surfaces (ZEBU)\" is on in the process: the green ones are printed curved, if the object is thick enough under them.") :
+                                        _L("To print them curved, turn on \"Curved top surfaces (ZEBU)\" in the Quality tab of the process."));
+        m_footer->SetLabel(footer);
         this->Layout();
     }
 

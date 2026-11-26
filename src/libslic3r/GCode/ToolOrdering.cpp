@@ -903,6 +903,11 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             if (! fill_filaments.empty())
                 layer_tools.has_object = true;
         }
+        // ZEBU: the curved top surfaces printed with this layer (one filament for the whole object).
+        if (layer->zebu_curved_filament > 0) {
+            layer_tools.extruders.emplace_back(extruder_override == 0 ? layer->zebu_curved_filament : unsigned(extruder_override));
+            layer_tools.has_object = true;
+        }
 
         // Record mixed slot usage for this object at this layer.
         // All mixed slots are tracked (not just gradient) so that calc_slot_lh

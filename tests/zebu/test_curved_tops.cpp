@@ -103,6 +103,57 @@ int main(int argc, char **argv)
     report("ramp 10 deg, 6 mm", ramp);
     assert(!ramp.empty() && ramp.front().printable);
 
+    // 6. Other objects. The dome's box is centred at (150, 150).
+    auto dome30 = [](double x, double y) { return 10. + std::sqrt(150. * 150. - x * x - y * y) - std::sqrt(150. * 150. - 2 * 15. * 15.); };
+    auto tower  = [](double cx, double cy, double h) {
+        SimpleMesh t = height_box(10, 10, 2, [h](double, double) { return h; });
+        for (auto &v : t.vertices) { v[0] += float(cx - 150.); v[1] += float(cy - 150.); }
+        return t;
+    };
+    {
+        // Far away: no change.
+        Obstacles far;
+        far.mesh = tower(400., 400., 40.);
+        auto with_far = analyze_curved_tops(height_box(30, 30, 60, dome30), g3d, params, &far);
+        report("dome 30 mm, 40 mm tower far away", with_far);
+        assert(with_far.size() == small_dome.size() && with_far.front().printable &&
+               std::abs(with_far.front().clearance - small_dome.front().clearance) < 1e-9);
+        // A complete 40 mm tower 10 mm away (objects printed one after another): the head would hit it.
+        Obstacles near;
+        near.mesh        = tower(150. + 15. + 10. + 5., 150., 40.);
+        near.full_height = true;
+        auto with_tower  = analyze_curved_tops(height_box(30, 30, 60, dome30), g3d, params, &near);
+        report("dome 30 mm, complete 40 mm tower 10 mm away", with_tower);
+        assert(!with_tower.empty() && !with_tower.front().printable);
+        // The same tower printed layer by layer with the dome: no higher than the dome's top when the curved layers
+        // are printed, so it is like the box's own walls.
+        near.full_height = false;
+        auto by_layer    = analyze_curved_tops(height_box(30, 30, 60, dome30), g3d, params, &near);
+        report("dome 30 mm, 40 mm tower 10 mm away printed with it", by_layer);
+        assert(!by_layer.empty());
+    }
+
+    // 7. The layer printing the curved layers: the one holding the top (here a 0.25 mm first layer).
+    {
+        CurvedTopsParams p2 = params;
+        for (double z = 0.25; z < 20.; z += 0.2)
+            p2.layer_tops.push_back(z);
+        auto tops = analyze_curved_tops(height_box(30, 30, 60, dome30), g3d, p2);
+        assert(!tops.empty() && tops.front().print_z >= tops.front().z_max - 0.1 - 1e-6 && tops.front().print_z < tops.front().z_max + 0.1);
+        std::printf("dome 30 mm: top %.2f mm, printed with the layer of top %.2f mm\n", tops.front().z_max, tops.front().print_z);
+    }
+
+    // 8. The height field of a patch: the surface's height inside, and still a height just outside its outline.
+    {
+        const SimpleMesh mesh = height_box(30, 30, 60, dome30);
+        HeightField      field = rasterize_facets(mesh, small_dome.front().facets, 0.1, 3);
+        assert(!field.empty());
+        assert(std::abs(field.sample(150., 150.) - dome30(0., 0.)) < 0.01);
+        assert(std::abs(field.sample(160., 145.) - dome30(10., -5.)) < 0.01);
+        assert(!std::isnan(field.sample(165.02, 150.)) && !std::isnan(field.cell_height(134.98, 134.98)));
+        assert(std::isnan(field.sample(170., 150.)));
+    }
+
     // The other heads load, and the 30 mm dome against each.
     for (const char *id : {"raise-k2plus-eva-sb", "zortrax-m200k"}) {
         HeadUnderside other;

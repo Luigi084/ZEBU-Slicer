@@ -38308,11 +38308,47 @@ msgstr "La tête toucherait"
 msgid "No top surface of this object is gentle enough to be printed curved."
 msgstr "Aucun dessus de cet objet n'est assez doux pour être imprimé en courbe."
 
-msgid "%d of %d surfaces can be printed curved (green in the 3D view; orange: the toolhead would touch). Nothing is printed curved yet: this is an analysis."
-msgstr "%d surface(s) sur %d peuvent être imprimées en courbe (en vert dans la vue 3D ; en orange : la tête toucherait). Rien n'est encore imprimé en courbe : c'est une analyse."
+msgid "%d of %d surfaces can be printed curved (green in the 3D view; orange: the toolhead would touch)."
+msgstr "%d surface(s) sur %d peuvent être imprimées en courbe (en vert dans la vue 3D ; en orange : la tête toucherait)."
 
 msgid "Passing"
 msgstr "Réussite"
 
 msgid "For this printer, probably: %s"
 msgstr "Pour cette imprimante, probablement : %s"
+
+msgid "Print the last layers of gently sloped top surfaces following their shape instead of as stair steps, where the toolhead model of the printer shows that it cannot touch the print (see \"Curved top surfaces analysis\" in the ZEBU menu). The other surfaces are printed as usual.\nNeeds a toolhead model in the printer settings."
+msgstr "Imprime les dernières couches des dessus en pente douce en suivant leur forme au lieu de marches d'escalier, là où le modèle de tête de l'imprimante montre qu'elle ne peut pas toucher la pièce (voir « Analyse des dessus courbes » dans le menu ZEBU). Les autres surfaces sont imprimées normalement.\nNécessite un modèle de tête dans les paramètres de l'imprimante."
+
+msgid "Curved layers"
+msgstr "Couches courbes"
+
+msgid "Number of layers following the shape of a curved top surface. The layers below them are planar."
+msgstr "Nombre de couches qui suivent la forme d'un dessus courbe. Les couches en dessous sont planes."
+
+msgid "Steepest top surface printed curved for this print. It cannot exceed the maximum slope of the printer."
+msgstr "Pente la plus forte imprimée en courbe pour cette impression. Elle ne peut pas dépasser la pente maximale de l'imprimante."
+
+msgid "Curved top surfaces (ZEBU): this printer has no toolhead model, the top surfaces are printed flat. Choose one in the printer settings."
+msgstr "Dessus courbes (ZEBU) : cette imprimante n'a pas de modèle de tête, les dessus sont imprimés à plat. Choisissez-en un dans les paramètres de l'imprimante."
+
+msgid "Curved top surfaces (ZEBU) are not available with spiral vase, belt printers, Z contouring or an object printed with several filaments: the top surfaces are printed flat."
+msgstr "Les dessus courbes (ZEBU) ne sont pas disponibles en mode vase, sur les imprimantes à tapis, avec le contournage Z ou pour un objet imprimé avec plusieurs filaments : les dessus sont imprimés à plat."
+
+msgid "Curved top surfaces (ZEBU): the toolhead model cannot be read (%1%), the top surfaces are printed flat."
+msgstr "Dessus courbes (ZEBU) : le modèle de tête ne peut pas être lu (%1%), les dessus sont imprimés à plat."
+
+msgid "Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (the toolhead could touch the print, or the object is too thin under them)."
+msgstr "Dessus courbes (ZEBU) : %1% surface(s) imprimée(s) en courbe, %2% à plat (la tête pourrait toucher la pièce, ou l'objet est trop mince en dessous)."
+
+msgid "Choose a toolhead model in the printer settings (Curved top surfaces (ZEBU)) to use this setting."
+msgstr "Choisissez un modèle de tête dans les paramètres de l'imprimante (Dessus courbes (ZEBU)) pour utiliser ce réglage."
+
+msgid "Enable curved top surfaces to use this setting."
+msgstr "Activez les dessus courbes pour utiliser ce réglage."
+
+msgid "\"Curved top surfaces (ZEBU)\" is on in the process: the green ones are printed curved, if the object is thick enough under them."
+msgstr "« Dessus courbes (ZEBU) » est activé dans le traitement : les surfaces vertes sont imprimées en courbe, si l'objet est assez épais en dessous."
+
+msgid "To print them curved, turn on \"Curved top surfaces (ZEBU)\" in the Quality tab of the process."
+msgstr "Pour les imprimer en courbe, activez « Dessus courbes (ZEBU) » dans l'onglet Qualité du traitement."

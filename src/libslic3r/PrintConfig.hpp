@@ -1440,6 +1440,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 
+    // ZEBU: curved (non-planar) top surfaces
+    ((ConfigOptionBool,  zebu_curved_tops))
+    ((ConfigOptionInt,   zebu_curved_top_layers))
+    ((ConfigOptionFloat, zebu_curved_top_angle))
+
     // IDEX/IQEX parallel print mode (per-print selection, stores mode name or "primary")
     ((ConfigOptionString,              imex_parallel_mode))
     // Per-plate head→filament override for MMU-equipped printers.

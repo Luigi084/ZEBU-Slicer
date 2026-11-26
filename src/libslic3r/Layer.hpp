@@ -226,7 +226,14 @@ public:
     void                    export_region_fill_surfaces_to_svg_debug(const char *name) const;
 
     // Is there any valid extrusion assigned to this LayerRegion?
-    virtual bool            has_extrusions() const { for (auto layerm : m_regions) if (layerm->has_extrusions()) return true; return false; }
+    virtual bool            has_extrusions() const { for (auto layerm : m_regions) if (layerm->has_extrusions()) return true; return ! zebu_curved_tops.entities.empty(); }
+
+    // ZEBU: curved top surfaces printed with this layer, after the rest of the object (PrintObject::zebu_make_curved_tops()):
+    // one collection per curved layer, in printing order, of paths whose points' z are offsets from print_z. Not in the
+    // regions, so that nothing else orders or changes them.
+    ExtrusionEntityCollection zebu_curved_tops;
+    const PrintRegion        *zebu_curved_region { nullptr };
+    unsigned int              zebu_curved_filament { 0 }; // 1 based
 
     //BBS
     void simplify_wall_extrusion_path() { for (auto layerm : m_regions) layerm->simplify_wall_extrusion_entity();}
