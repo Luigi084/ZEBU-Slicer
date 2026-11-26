@@ -1,4 +1,5 @@
 #include "libslic3r/Config.hpp"
+#include "ZebuCurvedTopsDialog.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Model.hpp"
@@ -1746,6 +1747,12 @@ void MenuFactory::create_common_object_menu(wxMenu* menu)
     append_menu_item_export_drc(menu);
     // "Scale to print volume" makes a sense just for whole object
     append_menu_item_scale_selection_to_fit_print_volume(menu);
+
+    // ZEBU
+    menu->AppendSeparator();
+    append_menu_item(menu, wxID_ANY, _L("Curved top surfaces analysis") + dots, "",
+        [](wxCommandEvent&) { zebu_show_curved_tops_analysis(wxGetApp().mainframe); }, "", nullptr,
+        []() { return true; }, m_parent);
 }
 
 void MenuFactory::create_object_menu()
