@@ -38361,3 +38361,12 @@ msgstr "« Dessus courbes (ZEBU) » est activé dans le traitement : les surface
 
 msgid "To print them curved, turn on \"Curved top surfaces (ZEBU)\" in the Quality tab of the process."
 msgstr "Pour les imprimer en courbe, activez « Dessus courbes (ZEBU) » dans l'onglet Qualité du traitement."
+
+msgid "Curved top surfaces (ZEBU): %1% surface(s) printed with fewer curved layers than set, their lowest point being close to the bed."
+msgstr "Dessus courbes (ZEBU) : %1% surface(s) imprimée(s) avec moins de couches courbes que réglé, leur point le plus bas étant proche du plateau."
+
+msgid "Too close to the bed"
+msgstr "Trop près du plateau"
+
+msgid "Printable curved (%d layers)"
+msgstr "Imprimable en courbe (%d couches)"

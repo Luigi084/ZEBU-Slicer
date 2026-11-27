@@ -141,6 +141,15 @@ HeightField rasterize_facets(const SimpleMesh &mesh, const std::vector<int> &fac
     return out;
 }
 
+int curved_layers_fitting(double z_min, double first_layer_top, double layer_height, int wanted)
+{
+    int n = std::max(0, wanted);
+    // Same rule as CurvedTopPlan::planar_keeps(): the first layer keeps the lowest point.
+    while (n > 0 && first_layer_top > z_min - n * layer_height + 0.5 * layer_height + 1e-6)
+        --n;
+    return n;
+}
+
 std::string head_model_path(const std::string &value, const std::string &resources_dir)
 {
     if (value.find('/') != std::string::npos || value.find('\\') != std::string::npos)

@@ -154,6 +154,11 @@ public:
         params.layer_height  = print.opt_float("layer_height");
         params.curved_layers = std::max(1, print.opt_int("zebu_curved_top_layers"));
         const bool enabled   = print.opt_bool("zebu_curved_tops");
+        const double first_layer = print.opt_float("initial_layer_print_height");
+        // The slicing gives a surface near the bed fewer curved layers, none if the first layer would be cut.
+        auto layers_fitting = [&](const Zebu::CurvedTopPatch &p) {
+            return Zebu::curved_layers_fitting(p.z_min, first_layer, params.layer_height, params.curved_layers);
+        };
 
         std::vector<Zebu::CurvedTopPatch> patches;
         {
@@ -185,7 +190,7 @@ public:
                     }
                     its.indices.emplace_back(base, base + 1, base + 2);
                 }
-                overlay.emplace_back(std::move(its), patch.printable ? ColorRGBA(0.15f, 0.80f, 0.30f, 0.80f) :
+                overlay.emplace_back(std::move(its), patch.printable && layers_fitting(patch) > 0 ? ColorRGBA(0.15f, 0.80f, 0.30f, 0.80f) :
                                                                        ColorRGBA(1.00f, 0.45f, 0.05f, 0.85f));
             }
             if (canvas)
@@ -205,8 +210,12 @@ public:
             m_list->SetItem(row, 4, p.clearance >= head.cap() - 1e-6 ? wxString(_L("plenty")) : wxString::Format("%+.2f mm", p.clearance));
             // Every curved layer must pass: the share of the worst one, rounded down (100 % only when it all passes).
             m_list->SetItem(row, 5, wxString::Format("%d %%", int(std::floor(100. * std::min(p.ok_fraction, p.ok_fraction_lower) + 1e-9))));
-            m_list->SetItem(row, 6, p.printable ? _L("Printable curved") : _L("The toolhead would touch"));
-            printable += p.printable;
+            const int fit = layers_fitting(p);
+            m_list->SetItem(row, 6, !p.printable ? _L("The toolhead would touch") :
+                                    fit == 0     ? _L("Too close to the bed") :
+                                    fit < params.curved_layers ? wxString::Format(_L("Printable curved (%d layers)"), fit) :
+                                                   _L("Printable curved"));
+            printable += p.printable && fit > 0;
         }
         wxString footer = patches.empty() ?
             _L("No top surface of this object is gentle enough to be printed curved.") :

@@ -213,7 +213,7 @@ void PrintObject::zebu_plan_curved_tops()
                 printable[p] &= here[p].printable;
     }
 
-    int skipped_head = 0, skipped_layers = 0, skipped_thin = 0;
+    int skipped_head = 0, skipped_layers = 0, skipped_thin = 0, fewer_layers = 0;
     for (size_t p = 0; p < patches.size(); ++p) {
         const Zebu::CurvedTopPatch &patch = patches[p];
         if (!printable[p]) {
@@ -255,13 +255,24 @@ void PrintObject::zebu_plan_curved_tops()
                 z = std::min(z, float(*host));
         plan.z_max = std::min(plan.z_max, *host);
 
-        // The planar layers it touches: from one layer below the lowest curved layer up to the host layer, none of
-        // them the first layer. Their heights may vary ("precise Z height", variable layer height): the lowest curved
-        // layer fills the step left by the last one, so they stay below 1.5 layer heights (it is then at most twice
-        // as thick as the others).
-        const double bottom = patch.z_min - (N + 1) * lh;
-        bool         ok     = bottom > m_layers.front()->print_z + 1e-6;
-        for (size_t l = 0; ok && l <= plan.host_layer; ++l)
+        // As many curved layers as fit above the first layer, which stays whole: a thin part near the bed gets fewer.
+        float s_min = std::numeric_limits<float>::max();
+        for (const float z : plan.surface.z)
+            if (!std::isnan(z))
+                s_min = std::min(s_min, z);
+        plan.layers = Zebu::curved_layers_fitting(s_min, m_layers.front()->print_z, lh, N);
+        if (plan.layers == 0) {
+            ++skipped_layers;
+            continue;
+        }
+        if (plan.layers < N)
+            ++fewer_layers;
+        // The planar layers it touches: from one layer below the lowest curved layer up to the host layer. Their
+        // heights may vary ("precise Z height", variable layer height): the lowest curved layer fills the step left by
+        // the last one, so they stay below 1.5 layer heights (it is then at most twice as thick as the others).
+        const double bottom = s_min - (plan.layers + 1) * lh;
+        bool         ok     = true;
+        for (size_t l = 1; ok && l <= plan.host_layer; ++l)
             if (m_layers[l]->print_z > bottom && m_layers[l]->height > 1.5 * lh + 1e-6)
                 ok = false;
         if (!ok) {
@@ -270,7 +281,7 @@ void PrintObject::zebu_plan_curved_tops()
         }
         // The object must be solid under the surface down there: where a layer lies wholly below the surface, its
         // slices cover the footprint (the curved layers have the planar ones to stand on).
-        for (size_t l = 0; ok && l <= plan.host_layer; ++l) {
+        for (size_t l = 1; ok && l <= plan.host_layer; ++l) {
             const Layer &layer = *m_layers[l];
             if (layer.print_z <= bottom)
                 continue;
@@ -292,7 +303,7 @@ void PrintObject::zebu_plan_curved_tops()
         }
 
         // Cut the curved layers' room out of the planar layers: under the surface, above the planar layers' end.
-        for (size_t l = 0; l <= plan.host_layer; ++l) {
+        for (size_t l = 1; l <= plan.host_layer; ++l) {
             Layer       &layer = *m_layers[l];
             const double top   = layer.print_z;
             if (layer.print_z <= bottom)
@@ -323,6 +334,9 @@ void PrintObject::zebu_plan_curved_tops()
         warn((boost::format(L("Curved top surfaces (ZEBU): %1% surface(s) printed curved, %2% printed flat (%3%).")) %
               m_zebu_curved_tops.size() % skipped % why).str());
     }
+    if (fewer_layers > 0)
+        warn((boost::format(L("Curved top surfaces (ZEBU): %1% surface(s) printed with fewer curved layers than set, "
+                              "their lowest point being close to the bed.")) % fewer_layers).str());
     BOOST_LOG_TRIVIAL(info) << "ZEBU curved tops: " << m_zebu_curved_tops.size() << " surface(s) printed curved, flat: "
                             << skipped_head << " toolhead, " << skipped_layers << " layers, " << skipped_thin << " thin, object "
                             << m_model_object->name;

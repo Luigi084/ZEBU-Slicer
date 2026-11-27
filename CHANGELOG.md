@@ -15,6 +15,8 @@ ZEBU Slicer, par Luigi Laplace : fork d'OrcaSlicer 2.5.2, sous licence AGPL-3.0.
 - Les couches planes s'arrêtent sous la surface ; les dernières couches (4 par défaut) suivent sa forme,
   la plus basse épousant les marches des couches planes (son débit suit son épaisseur).
 - Compatible avec « Hauteur précise du Z » et les hauteurs de couche variables.
+- Une surface proche du plateau (disque fin, tête de soupape) reçoit moins de couches courbes, de façon
+  que la première couche reste entière ; l'analyse l'indique (« Imprimable en courbe (2 couches) »).
 - Menu ZEBU → « Analyse des dessus courbes » (et clic droit sur un objet) : montre en vert les surfaces
   imprimables en courbe, en orange les autres. Quand une surface reste plane au tranchage, un
   avertissement en donne la raison.

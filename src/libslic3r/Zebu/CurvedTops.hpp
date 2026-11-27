@@ -86,6 +86,10 @@ struct HeightField
 // get the height of their nearest neighbour (so that points on the surface's outline find a height).
 HeightField rasterize_facets(const SimpleMesh &mesh, const std::vector<int> &facets, double step, int extend);
 
+// How many of `wanted` curved layers fit under a surface whose lowest point is at `z_min`: the planar layers end at
+// least half a layer below them, and the first layer stays whole. 0: none.
+int curved_layers_fitting(double z_min, double first_layer_top, double layer_height, int wanted);
+
 // Path of a head file from the printer's "zebu_head_model" value: an id of resources/zebu/heads, or a full path.
 std::string head_model_path(const std::string &value, const std::string &resources_dir);
 

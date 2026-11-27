@@ -154,6 +154,12 @@ int main(int argc, char **argv)
         assert(std::isnan(field.sample(170., 150.)));
     }
 
+    // 9. Curved layers near the bed: the first layer (0.25 mm) stays whole.
+    assert(curved_layers_fitting(10.0, 0.25, 0.2, 4) == 4);
+    assert(curved_layers_fitting(0.6, 0.25, 0.2, 4) == 2);
+    assert(curved_layers_fitting(0.5, 0.25, 0.2, 4) == 1);
+    assert(curved_layers_fitting(0.3, 0.25, 0.2, 4) == 0);
+
     // The other heads load, and the 30 mm dome against each.
     for (const char *id : {"raise-k2plus-eva-sb", "zortrax-m200k"}) {
         HeadUnderside other;
